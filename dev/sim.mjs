@@ -15,12 +15,13 @@ export function makeProfile(kind, loadout) {
   return { gold: 0, towers: allTowers, skills, castle, rightBuilt: kind === 'full', sides: { left: 'meteor', right: kind === 'full' ? 'thunder' : null }, loadout };
 }
 
-export function runBot({ mapId, difficulty, profile, plan, sides, verbose = false, maxMinutes = 60 }) {
+export function runBot({ mapId, difficulty, profile, plan, sides, verbose = false, maxMinutes = 60, setup = null }) {
   applySettings({ autoWave: false });
   applyRecords(null);
   applyProfile(profile);
   if (sides) state.profile.sides = sides;
   game.newGame(difficulty, mapId);
+  if (setup) setup(state); // deneme araçları için: haritanın çarpanlarını oyun başlamadan değiştir
   const run = state.run;
   const map = state.map;
   let result = null;

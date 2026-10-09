@@ -153,6 +153,7 @@ export function createMap(mapId) {
     theme: def.theme,
     waves: def.waves,                         // bu bölümün dalgaları
     hp: def.hp,                               // bölüm çarpanları (düşman canı, ruh)
+    horde: def.horde ?? 1,                    // yalnızca sıradan düşmanların canı (patronlar hariç)
     souls: def.souls,
   };
 }

@@ -179,7 +179,8 @@ const LAYOUT = `
   </section>`;
 
 function buildBar() {
-  const size = 34;
+  const size = 46;   // simge (CSS pikseli)
+  const zoom = 1.14; // kule simgesi biraz büyütülür: tepesindeki boş pay ve ışıltı kırpılır, gövde öne çıkar
   el.bar.innerHTML = '';
   barBtns.clear();
   for (const type of loadoutTowers()) { // yalnızca savaşa götürülen kuleler (en çok 6)
@@ -194,9 +195,11 @@ function buildBar() {
     cv.width = Math.round(size * dpr);
     cv.height = Math.round(size * dpr);
     cv.className = 'tower-icon';
-    cv.getContext('2d').drawImage(towerIcon(type, cv.width), 0, 0);
+    const src = towerIcon(type, Math.round(cv.width * zoom));
+    // yatayda ortalı, tabanı alt kenara oturur (taşan kısım üstten kırpılır)
+    cv.getContext('2d').drawImage(src, Math.round((cv.width - src.width) / 2), cv.height - src.height);
     btn.appendChild(cv);
-    btn.insertAdjacentHTML('beforeend', `<span class="tower-cost">${def.levels[0].cost}</span>`);
+    btn.insertAdjacentHTML('beforeend', `<span class="tower-cost">${ICON.soul}<b>${def.levels[0].cost}</b></span>`);
     btn.addEventListener('pointerdown', (e) => onBarDown(type, e));
     btn.addEventListener('click', () => onBarClick(type));
     btn.addEventListener('contextmenu', (e) => e.preventDefault()); // uzun basışta tarayıcı menüsü çıkmasın

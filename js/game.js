@@ -510,7 +510,8 @@ function spawnEnemy(type, wave, d, counted, path = 0, echo = 0) {
   const diff = diffOf();
   const lane = map.polys[path] ? path : 0;
   const poly = map.polys[lane];
-  const hp = def.hp * SCALING.hp(wave) * diff.hp * map.hp * (echo > 0 ? echo : 1);
+  const kind = def.boss ? SCALING.bossHp(wave) : SCALING.hordeHp(wave) * map.horde; // sıradan düşman ile patronun ayrı eğrisi
+  const hp = def.hp * SCALING.hp(wave) * kind * diff.hp * map.hp * (echo > 0 ? echo : 1);
   const baseSouls = def.souls > 0 ? def.souls : echo > 0 ? WAVE_RULES.echoSouls : 0; // yankı patron da ödül bırakır
   const souls = baseSouls > 0 ? Math.max(1, Math.round(baseSouls * SCALING.souls(wave) * diff.souls * map.souls)) : 0;
   const dd = Math.min(Math.max(0, d), poly.length - 0.05);

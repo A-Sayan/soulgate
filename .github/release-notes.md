@@ -1,27 +1,27 @@
-## Soulgate: Tower Defense 1.2.0
+## Soulgate: Tower Defense 1.2.1
 
 **Türkçe**
 
-- Artık bilgisayarda da oynanır: oyun her ekran ve pencere boyutunda açılır. Geniş ekranda oyun ortada durur, iki yanda bölümün havası akar; alçak pencerede (dizüstü, itch.io) ana menü yan yana dizilir.
-- Fare: sağ tık kurulumdan, yetenek hedeflemesinden ya da panelden vazgeçer; bardaki kuleye sağ tık bilgisini açar. Kule seçiliyken hayalet kule fareyi izler, tek tıkla kurulur.
-- Klavye: 1–6 kule seç, Boşluk dalga, F hız, Q / E yetenekler, U yükselt, X sat, Esc / P duraklat. Bilgisayarda düğmelerin köşesinde tuş etiketleri görünür; tam liste Ayarlar'da.
-- Telefonda görünüm ve oynanış aynı kaldı.
+- Denge: sıradan düşmanlar daha dayanıklı (ilk bölümlerde biraz daha fazla), 10. dalgadan sonra ruh daha yavaş artıyor ve dalga bonusu daha az büyüyor. Geç oyunda haritayı doldurup her kuleyi en üste çıkarmak artık kolay değil; harcama kararları önem kazanıyor.
+- Patron savaşları eskisi gibi: patronlar azalan ruha göre biraz hafifletildi. Son bölüm (Boşluk Tahtı) biraz daha fazla ruh veriyor.
+- Zorluklar: Çırak'ta ruh bonusu ×1.12'den ×1.08'e indi; Kâbus'ta ruh cezası kalktı (×0.95 → ×1.0), Kâbus eskisi kadar zor.
+- Kule barında kule simgeleri büyüdü, fiyatın yanında ruh simgesi var.
 
 **Dosyalar**
 
-- `Soulgate-1.2.0.apk`: Android telefona kurulur (Android 7 ve üstü). Eskisinin üstüne kurulur, ilerleme korunur.
-- `Soulgate-1.2.0-web.zip`: tarayıcı sürümü (itch.io'ya bu yüklenir).
+- `Soulgate-1.2.1.apk`: Android telefona kurulur (Android 7 ve üstü). Eskisinin üstüne kurulur, ilerleme korunur.
+- `Soulgate-1.2.1-web.zip`: tarayıcı sürümü (itch.io'ya bu yüklenir).
 
 ---
 
 **English**
 
-- Now playable on computers: the game opens at any screen or window size. On wide screens it sits in the middle with the chapter's atmosphere drifting on both sides; in short windows (laptops, itch.io) the main menu is laid out side by side.
-- Mouse: right-click cancels placing, skill aiming or the panel; right-click a tower on the bar for its details. The ghost tower follows the mouse and builds with a single click.
-- Keyboard: 1–6 pick a tower, Space wave, F speed, Q / E skills, U upgrade, X sell, Esc / P pause. Key labels show on the buttons on computers; the full list is in Settings.
-- Nothing changed on phones.
+- Balance: regular enemies are tougher (a little more so in the early chapters); after wave 10 souls grow more slowly and the wave bonus grows less. Late in a run you can no longer easily fill the map and max every tower; spending choices matter.
+- Boss fights feel the same: bosses were eased slightly to match the leaner economy. The final chapter (Void Throne) gives a few more souls.
+- Difficulties: Apprentice's soul bonus went from ×1.12 to ×1.08; Nightmare's soul penalty is gone (×0.95 → ×1.0), so it stays as hard as before.
+- The tower bar has bigger tower icons and a soul icon next to each price.
 
 **Files**
 
-- `Soulgate-1.2.0.apk`: install on an Android phone (Android 7+). Installs over the old version; progress is kept.
-- `Soulgate-1.2.0-web.zip`: browser build (for itch.io).
+- `Soulgate-1.2.1.apk`: install on an Android phone (Android 7+). Installs over the old version; progress is kept.
+- `Soulgate-1.2.1-web.zip`: browser build (for itch.io).

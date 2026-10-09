@@ -8,7 +8,8 @@ const args = process.argv.slice(2);
 const maps = args[0] && args[0] !== 'all' ? args[0].split(',') : MAP_ORDER;
 const diffs = (args[1] ?? 'easy,normal,hard').split(',');
 const profs = (args[2] ?? 'full,mid').split(',');
-const plans = (args[3] ?? Object.keys(PLANS).join(',')).split(',');
+// varsayılan: "starter" hariç bütün planlar (o yalnızca "start" profiliyle anlamlı)
+const plans = (args[3] ?? Object.keys(PLANS).filter((p) => p !== 'starter').join(',')).split(',');
 for (const mapId of maps) {
   for (const pk of profs) {
     const row = [];

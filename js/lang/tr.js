@@ -785,7 +785,7 @@ export default {
       lives: 'Kaleye hasar',
       armor: 'Zırh',
       resist: 'Büyü direnci',
-      enemyNote: 'Değerler ilk dalga ve Muhafız zorluğu içindir; dalgalar ilerledikçe can ve ruh büyür.',
+      enemyNote: 'Değerler temel değerlerdir (ilk dalga, Muhafız); can ve ruh dalgayla, bölümle ve zorlukla değişir.',
       damage: 'Hasar',
       cooldown: 'Bekleme',
       soulCost: 'Ruh bedeli',

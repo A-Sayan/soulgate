@@ -27,7 +27,7 @@ import { CHAPTER_DEFS } from './content/chapters.js';
 export const GAME = {
   title: 'Soulgate',
   fullTitle: 'Soulgate: Tower Defense',
-  version: '1.2.0',
+  version: '1.2.1',
   year: 2026,                 // ilk yayın yılı
   studio: 'Sayk Studio',      // yayıncı; telif satırında görünür
   owner: 'A. Sayan',          // telif sahibi
@@ -82,14 +82,14 @@ export const ECONOMY = {
   sellRefund: 0.7,          // satışta yatırımın %70'i geri gelir
   freshRefund: 1.0,         // bu hazırlık evresinde kurulduysa tam iade
   waveClearBase: 20,        // dalga temizleme bonusu = taban + dalga × ek
-  waveClearPerWave: 5,
+  waveClearPerWave: 4,
   earlyCallPerSecond: 3,    // erken çağrıda kalan her saniye için ruh
 };
 
 export const DIFFICULTIES = {
   easy: {
     id: 'easy',
-    hp: 0.78, souls: 1.12, lives: 30, startSouls: 250, reward: 0.7,
+    hp: 0.78, souls: 1.08, lives: 30, startSouls: 250, reward: 0.7,
   },
   normal: {
     id: 'normal',
@@ -97,7 +97,7 @@ export const DIFFICULTIES = {
   },
   hard: {
     id: 'hard',
-    hp: 1.18, souls: 0.95, lives: 12, startSouls: 180, reward: 1.6,
+    hp: 1.18, souls: 1.0, lives: 12, startSouls: 180, reward: 1.6,
   },
 };
 export const DIFFICULTY_ORDER = ['easy', 'normal', 'hard'];
@@ -106,12 +106,22 @@ export const DEFAULT_DIFFICULTY = 'normal';
 /* --------------------------------------------------------------------------
  * 5. ÖLÇEKLEME — dalga numarasına (1..30) göre çarpanlar
  *  Can eğrisi hafif üsteldir: dalga 10 ≈ ×2.3, dalga 20 ≈ ×4.6, dalga 30 ≈ ×7.7
- *  Altın daha yavaş artar; böylece geç oyunda harcama kararları ağırlaşır.
- *  (Değerler 30 dalgayı oynayan bot simülasyonlarıyla ayarlandı.)
+ *  Bunun üstüne sıradan düşmanlar (hordeHp) ile patronlar (bossHp) ayrı eğri
+ *  izler: 1.2.1'den beri sıradan dalgalar daha dayanıklı (oyuncu haritayı
+ *  kolayca doldurmasın), patronlar biraz daha az; böylece azalan ruha karşın
+ *  patron savaşları eskisi gibi kalır. Bölümün kendi "horde" çarpanı da eklenir.
+ *  Ruh 10. dalgaya kadar eskisi gibi, sonra daha yavaş artar; geç oyunda her
+ *  kuleyi en üste çıkarmak artık mümkün değil, harcama kararları ağırlaşır.
+ *  (Değerler 30 dalgayı oynayan bot simülasyonlarıyla ayarlandı: dev/economy.mjs.)
  * ------------------------------------------------------------------------ */
 export const SCALING = {
   hp: (w) => 1 + 0.11 * (w - 1) + 0.0042 * (w - 1) ** 2,
-  souls: (w) => 1 + 0.045 * (w - 1),
+  // sıradan düşmanlar: dalga 1 ×1.05, 10 ×1.08, 20 ×1.11, 30 ×1.14 (× bölümün horde'u)
+  hordeHp: (w) => 1.05 + 0.003 * (w - 1),
+  // patronlar ve yankıları: dalga 10 ×0.96, 20 ×0.92, 30 ×0.88 (azalan geç oyun ruhunu dengeler)
+  bossHp: (w) => 1 - 0.004 * (w - 1),
+  // dalga 10'a kadar dalga başına +%4.5, sonra +%3.5 (dalga 30: ×2.11; eskiden ×2.31)
+  souls: (w) => 1 + 0.045 * (Math.min(w, 10) - 1) + 0.035 * Math.max(0, w - 10),
   speed: (w) => 1 + 0.004 * (w - 1),
 };
 

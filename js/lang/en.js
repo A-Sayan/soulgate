@@ -771,7 +771,7 @@ export default {
       lives: 'Castle damage',
       armor: 'Armor',
       resist: 'Magic resist',
-      enemyNote: 'Values are for the first wave on Warden; health and souls grow as the waves go on.',
+      enemyNote: 'These are base values (first wave, Warden); health and souls change with the wave, the chapter and the difficulty.',
       damage: 'Damage',
       cooldown: 'Cooldown',
       soulCost: 'Soul cost',

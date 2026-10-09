@@ -12,7 +12,7 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
   oyuncunun ne göreceğini anlat. Kodu kendisi telefonda Spck Editor ile açar ve önizler.
 - **Teslim alışkanlığı:** iş bitince kısa Türkçe özet, değişen dosyaların listesi, gerekiyorsa
   dosyalar (APK, zip) sohbete gönderilir. Uzun teknik anlatı yok.
-- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.2.0**). APK sürümü de buradan okunur.
+- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.2.1**). APK sürümü de buradan okunur.
 
 ## 2. Yayın kanalları (hepsi canlı)
 
@@ -20,7 +20,7 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
 |---|---|---|
 | GitHub deposu | `A-Sayan/soulgate` (public), dal `main` | push |
 | Tarayıcı sürümü | https://a-sayan.github.io/soulgate/ | `main`'e push → `.github/workflows/pages.yml` kendiliğinden yayımlar |
-| APK + web paketi | GitHub Releases (`v1.2.0` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
+| APK + web paketi | GitHub Releases (`v1.2.1` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
 | itch.io | Kullanıcının sayfası (kuruldu) | Kullanıcı elle yükler: Release'teki `Soulgate-x.y.z-web.zip` + `Soulgate-x.y.z.apk` |
 
 **Erişim:** Claude oturumları kullanıcının `m-Salih38` GitHub bağlantısıyla çalışır. `m-Salih38`, `A-Sayan/soulgate`
@@ -139,13 +139,19 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
 - Hasar: çarpan = (1 + lanet artışı) × kırılganlık × (fiziksel ise sertleşme); savunma = zırh/direnç ×
   (1 − max(lanet aşındırma, erime)) × (1 − delme), en çok 0.9. Önce buz kalkanı (ward) emer.
 - Savaş Çanı güçlendirmesi `applyTowerAuras` (`t.bRate/bDmg/bRange`) + `liveStats(t)`.
-- Bölüm çarpanları: can 1 / 1.05 / 1.1 / 1.25 / 1.2, ödül 1 / 1.25 / 1.5 / 1.75 / 2.
-- Zorluk: easy (30 can, 250 ruh, can ×0.78, altın ×0.7), normal (20, 200, ×1.0, ×1.0), hard (12, 180, ×1.18, ×1.6).
+- Düşman canı = taban × `SCALING.hp(dalga)` × (patron: `bossHp`, sıradan: `hordeHp` × bölümün `horde`) × zorluk × bölüm `hp`.
+  1.2.1 dengesi (kullanıcı: "sıradan düşmanlar kolay, harita dolup her şey en üste çıkıyor; patronlar iyi"):
+  `hordeHp` 1.05→1.14 (dalga 1→30), `bossHp` 1→0.88, ruh 10. dalgaya kadar +%4.5/dalga sonra +%3.5,
+  dalga bonusu 20 + 4×dalga. Patronların yürüdüğü yol (dev/economy.mjs) eskisiyle aynı tutuldu.
+- Bölüm çarpanları: can 1 / 1.05 / 1.1 / 1.25 / 1.2, sıradan düşman (`horde`) 1.08 / 1.04 / 0.97 / 1 / 0.95,
+  ruh 1 / 1 / 1 / 1 / 1.12, ödül 1 / 1.25 / 1.5 / 1.75 / 2.
+- Zorluk: easy (30 can, 250 ruh, can ×0.78, ruh ×1.08, altın ×0.7), normal (20, 200, ×1.0, ×1.0, ×1.0),
+  hard (12, 180, ×1.18, ruh ×1.0, altın ×1.6).
 - Açılma: bölüm n+1, bölüm n herhangi bir zorlukta kazanılınca açılır. Kazanılan her zorluk bir yıldız (toplam 15).
   Çarşı ürünleri bölümün `unlocks` listesiyle açılır. Rekorlar bölüm × zorluk bazında; eski biçimden geçiş var.
 - Savaştan önce en çok 6 kule seçilir (`LOADOUT_SIZE`).
 
-## 6. İçerik (1.2.0)
+## 6. İçerik (1.2.1)
 
 **Bölümler** (her biri 30 dalga; 10/20/30 patron):
 1. `kul-vadisi` Kül Vadisi (tek yol). 2. `ayaz-gecidi` Ayaz Geçidi (açar: lance, prism, thunder, timestop).
@@ -189,10 +195,14 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
 - Tarayıcı testleri: depo kökünde `python3 -m http.server 8765 --bind 127.0.0.1`, sonra `python3 dev/e2e.py all`
   (telefon) ve `python3 dev/desktop.py` (bilgisayar: 8 pencere boyutu, fare + klavye; "SONUÇ: BAŞARILI" yazmalı).
   Konsolda hata olmamalı. Ekran görüntülerine bakarak kontrol et.
-- Denge: `node dev/balance.mjs all easy,normal,hard full,mid` (iki kez çalıştır, sonuçlar rastgelelik içerir).
-  Ayrıntılar `dev/README.md`.
-- Mevcut denge (bot, 1.1.0): tam profil bütün bölümlerde easy+normal kazanır. Hard: 1/2/4 çoğunlukla kazanılır;
-  3 ve 5 (en zor bölüm) zorlanır. Orta profil her bölümde easy'yi, ilk bölümlerde normal'i kazanır.
+- Denge: `node dev/balance.mjs all easy,normal,hard full,mid` (iki kez çalıştır, sonuçlar rastgelelik içerir);
+  yeni oyuncu: `node dev/balance.mjs kul-vadisi,ayaz-gecidi easy,normal,hard start starter`.
+  Ekonomi ve patron hissi: `node dev/economy.mjs all easy,normal,hard full classic` (ruh kaynakları, harita doluluğu,
+  normal/patron dalgasında can kaybı, patronların yolun yüzde kaçını yürüdüğü). Ayrıntılar `dev/README.md`.
+- Mevcut denge (bot, 1.2.1): tam profil her bölümde easy'yi, normal'i çoğunlukla kazanır (3 ve 5 arada kaybeder);
+  hard: 1/2/4 çoğunlukla kazanılır, 3 ve 5 zorlanır. Orta profil easy'yi kazanır, normal'de 1. bölümü kazanır,
+  sonrasında zorlanır. 1.1.0'a göre: oyun başına ruh ~%10 az, sıradan dalgada kaybedilen can 2-3 kat,
+  patronların yürüdüğü yol aynı (±2 puan). Bot zayıf bir oyuncudur (12 kuleyi en üste çıkarmadan yenisini kurmaz).
 - APK Claude tarafından cihazda çalıştırılamaz. Kullanıcının telefonunda denemesini iste
   (ses, geri tuşu, kapatıp açınca kayıt).
 

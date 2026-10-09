@@ -5,8 +5,9 @@ Oyuna, APK'ya, web paketine ya da GitHub Pages'e girmez. Hepsi depo kökünden �
 | Araç | Ne yapar | Örnek |
 |---|---|---|
 | `sim.mjs` | Başsız bot: bir bölümü baştan sona oynar (Node, tarayıcısız) | `node dev/sim.mjs ayaz-gecidi normal full` |
-| `balance.mjs` | Denge tablosu: bölüm × zorluk × profil (full/mid/start) × plan | `node dev/balance.mjs all easy,normal,hard full,mid` |
-| `plans.mjs` | Botun kule planları (classic, pierce, burn, mixed) | — |
+| `balance.mjs` | Denge tablosu: bölüm × zorluk × profil (full/mid/start) × plan | `node dev/balance.mjs all easy,normal,hard full,mid` · yeni oyuncu: `node dev/balance.mjs kul-vadisi,ayaz-gecidi easy,normal,hard start starter` |
+| `economy.mjs` | Ekonomi: 5'er dalgada kule/yer, doluluk, en üstteki kule sayısı, boştaki ruh; ruhun kaynakları; normal dalga ve patron dalgasında kaybedilen can; patronların yolun yüzde kaçını yürüdüğü | `node dev/economy.mjs all easy,normal full classic` |
+| `plans.mjs` | Botun kule planları (classic, pierce, burn, mixed; starter = yalnızca okçu + havan) | — |
 | `leak.mjs` | Tek koşu; hangi dalgada hangi düşman kaleye ulaştı (boss'ta kalan can %) | `node dev/leak.mjs bosluk-tahti normal full classic` |
 | `towercmp.mjs` | Her kuleyi ağırlıklı planla karşılaştırır | `node dev/towercmp.mjs kara-bataklik hard` |
 | `e2e.py` | Gerçek index.html, telefon boyutu: menü, çarşı, kule seçimi, her bölüm, boss dalgası | `python3 dev/e2e.py all` |
