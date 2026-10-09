@@ -69,7 +69,7 @@ export const CHAPTER_DEFS = [
       ambient: 'ash',
       accent: '#ff7a2f',
     },
-    music: { root: 55, scale: [0, 2, 3, 5, 7, 8, 10], boss: [0, 1, 3, 5, 7, 8, 10], wind: 1 },
+    music: { root: 55, scale: [0, 2, 3, 5, 7, 8, 10], boss: [0, 1, 3, 5, 7, 8, 10] },
     procession: ['ghoul', 'wraith', 'knight', 'ghoul', 'brute', 'shaman', 'wolf', 'wraith', 'skeleton'],
     // ana menünün hareketli sahnesinde (bu bölüm en son açılansa) duran kuleler
     showcase: [
@@ -148,7 +148,7 @@ export const CHAPTER_DEFS = [
       ambient: 'snow',
       accent: '#a6ecff',
     },
-    music: { root: 61.74, scale: [0, 2, 3, 5, 7, 9, 10], boss: [0, 1, 3, 5, 7, 8, 10], wind: 1.8 },
+    music: { root: 61.74, scale: [0, 2, 3, 5, 7, 9, 10], boss: [0, 1, 3, 5, 7, 8, 10] },
     procession: ['frostwolf', 'witch', 'golem', 'raven', 'frostwolf', 'ghoul', 'knight', 'raven', 'shardling'],
     showcase: [
       { type: 'lance', c: 5, r: 1, level: 2, mastery: 0 },
@@ -227,7 +227,7 @@ export const CHAPTER_DEFS = [
       ambient: 'firefly',
       accent: '#b6ff3a',
     },
-    music: { root: 51.91, scale: [0, 1, 3, 5, 7, 8, 10], boss: [0, 1, 3, 4, 7, 8, 10], wind: 0.7 },
+    music: { root: 51.91, scale: [0, 1, 3, 5, 7, 8, 10], boss: [0, 1, 3, 4, 7, 8, 10] },
     procession: ['slime', 'lurker', 'troll', 'bloater', 'slimelet', 'ghoul', 'shaman', 'lurker', 'slimelet'],
     showcase: [
       { type: 'poison', c: 4, r: 3, level: 2, mastery: 1 },
@@ -305,7 +305,7 @@ export const CHAPTER_DEFS = [
       ambient: 'ember',
       accent: '#ff7a1a',
     },
-    music: { root: 49, scale: [0, 2, 3, 5, 7, 8, 11], boss: [0, 1, 4, 5, 7, 8, 11], wind: 0.9 },
+    music: { root: 49, scale: [0, 2, 3, 5, 7, 8, 11], boss: [0, 1, 4, 5, 7, 8, 11] },
     procession: ['imp', 'drummer', 'molten', 'imp', 'wyvern', 'knight', 'imp', 'brute', 'imp'],
     showcase: [
       { type: 'hunter', c: 3, r: 2, level: 2, mastery: 0 },
@@ -384,7 +384,7 @@ export const CHAPTER_DEFS = [
       ambient: 'void',
       accent: '#d08aff',
     },
-    music: { root: 46.25, scale: [0, 1, 3, 5, 6, 8, 10], boss: [0, 1, 3, 4, 6, 8, 9], wind: 1.2 },
+    music: { root: 46.25, scale: [0, 1, 3, 5, 6, 8, 10], boss: [0, 1, 3, 4, 6, 8, 9] },
     procession: ['voidwalker', 'revenant', 'spider', 'oracle', 'voidwalker', 'wraith', 'revenant', 'spider', 'voidwalker'],
     showcase: [
       { type: 'prism', c: 2, r: 4, level: 2, mastery: 0 },

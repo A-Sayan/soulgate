@@ -307,6 +307,7 @@ function drawGameScene(quality, dt) {
   if (run && !run.paused && !run.over && run.speed > 0) ambientTick(dt * run.speed, quality, state.map.theme?.ambient);
   setBase(true);
   atIdentity = false;
+  drawSurround();
   drawMapLayer();
   drawRuin();
   drawRouteMarks(dt, quality);
@@ -349,6 +350,25 @@ function drawOverlay(dark) {
 /* --------------------------------------------------------------------------
  * 4. ZEMİN
  * ------------------------------------------------------------------------ */
+/**
+ * Haritanın çevresi: ekranda haritanın yanlarında boş yer kaldıysa
+ * (bilgisayar, tablet) zemin ekranın kenarına kadar uzanır.
+ * Telefonda harita ekranı kapladığı için çizilmez.
+ */
+function drawSurround() {
+  const v = state.view;
+  const map = state.map;
+  if (W - map.cols * v.cell < v.cell * 1.2) return; // yanlarda yer yok: telefon
+  // ekranın kenarına kadar kaç hücre gerekiyor (kamera yakınlaşınca da yetsin diye bir hücre pay).
+  // Menüde kamera süzülür: her konumu karşılayan sabit bir değer (yoksa yeniden çizim takılması olur).
+  const menu = state.scene === 'menu';
+  const needX = menu ? (W / v.cell - map.cols) / 2 + 2 : Math.max(v.ox, W - v.ox - map.cols * v.cell) / v.cell + 1;
+  const needY = menu ? H / v.cell + 1 : Math.max(v.oy, H - v.oy - map.rows * v.cell) / v.cell + 1;
+  const s = S.surroundLayer(map, needX, needY);
+  identity();
+  g.drawImage(s.c, v.ox - s.ox * v.cell, v.oy - s.oy * v.cell, s.w * v.cell, s.h * v.cell);
+}
+
 function drawMapLayer() {
   const layer = S.mapLayer(state.map);
   const v = state.view;
@@ -1696,6 +1716,7 @@ function drawMenuContents(dt, quality) {
 
   setBase(false);
   atIdentity = false;
+  drawSurround();
   drawMapLayer();
 
   // alay ilerler

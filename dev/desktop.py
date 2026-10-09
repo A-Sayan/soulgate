@@ -1,8 +1,11 @@
 """Bilgisayar ve geniş ekran testi: gerçek index.html, fare ve klavye.
 
 1) Birçok pencere boyutunda (geniş, alçak, dev, telefon) ana menü, ayarlar,
-   bölümler, zorluk ve oyun ekranının görüntüsü; sahnenin genişliği, haritanın
-   sahneye sığdığı ve hiçbir menü öğesinin ekran dışına taşmadığı denetlenir.
+   bölümler, zorluk ve oyun ekranının görüntüsü; hiçbir menü öğesinin ekran
+   dışına taşmadığı denetlenir. Geniş düzende (html.wide) harita sol bilgi
+   kartı ile sağ kule paneli arasına sığmalı, zorluk ekranında başlat düğmesi
+   görünmeli, seçili kule paneli kaydırma gerektirmemeli; dar pencerede
+   (ortada dikey sahne) harita sahneye sığmalı.
 2) Fare + klavye akışı: 1 tuşu + fareyle kule kurma, U yükselt, X X sat,
    Boşluk dalga, F hız, Q / E yetenek, sağ tık vazgeç, Esc duraklat.
 3) Telefon (dokunmatik): sahne tam genişlik, kısayol rozetleri ve ayarlardaki
@@ -19,7 +22,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out', 'desktop')
 os.makedirs(OUT, exist_ok=True)
 URL = 'http://127.0.0.1:8765/index.html'
 
-SIZES = [(1920, 1080), (1920, 950), (1366, 657), (1280, 600), (1024, 500), (800, 450), (2560, 1440), (1000, 1200)]
+SIZES = [(1920, 1080), (1920, 950), (1366, 657), (1280, 600), (1100, 880), (1024, 500), (800, 450), (2560, 1440), (1000, 1200)]
 
 errs = []
 fails = []
@@ -87,7 +90,8 @@ GAME_GEOM = """async () => {
   const hud = document.querySelector('.hud').getBoundingClientRect();
   const dock = document.querySelector('.dock').getBoundingClientRect();
   return { cell: v.cell, ox: v.ox, oy: v.oy, mapW: C.GRID.cols * v.cell, mapH: C.GRID.rows * v.cell,
-           hudL: hud.left, hudR: hud.right, hudB: hud.bottom, dockT: dock.top, W: innerWidth, H: innerHeight };
+           hudL: hud.left, hudR: hud.right, hudB: hud.bottom, dockT: dock.top, dockL: dock.left, W: innerWidth, H: innerHeight,
+           wide: document.documentElement.classList.contains('wide') };
 }"""
 
 
@@ -113,6 +117,7 @@ with sync_playwright() as p:
         pg.goto(URL)
         pg.wait_for_timeout(2200)
         check(not pg.locator('.rotate-hint').is_visible(), f'{tag}: "dik tut" uyarısı bilgisayarda görünmemeli')
+        check(pg.locator('.screen.active [data-act="fullscreen"]').is_visible(), f'{tag}: ana menüde tam ekran düğmesi görünmeli')
         pg.screenshot(path=f'{OUT}/{tag}-1-main.png')
         check(pg.evaluate(OVERFLOW) == [], f'{tag}: ana menü taşıyor {pg.evaluate(OVERFLOW)}')
         act(pg, 'settings')
@@ -128,16 +133,38 @@ with sync_playwright() as p:
         pg.wait_for_timeout(450)
         pg.screenshot(path=f'{OUT}/{tag}-4-difficulty.png')
         check(pg.evaluate(OVERFLOW) == [], f'{tag}: zorluk ekranı taşıyor {pg.evaluate(OVERFLOW)}')
+        sb = pg.locator('.screen.active [data-act="start"]').bounding_box()
+        check(sb and sb['y'] + sb['height'] <= h + 1, f'{tag}: başlat düğmesi ekranda görünmeli {sb}')
         act(pg, 'start')
         confirm_if(pg)
         pg.wait_for_timeout(1800)
         geo = pg.evaluate(GAME_GEOM)
         pg.screenshot(path=f'{OUT}/{tag}-5-game.png')
-        # harita sahneye (HUD genişliği) ve HUD ile bar arasına sığmalı
-        check(geo['ox'] >= geo['hudL'] - 1 and geo['ox'] + geo['mapW'] <= geo['hudR'] + 1, f'{tag}: harita sahneden taşıyor {geo}')
-        check(geo['oy'] >= geo['hudB'] - 1 and geo['oy'] + geo['mapH'] <= geo['dockT'] + 1, f'{tag}: harita HUD/bar altında {geo}')
-        check(abs((geo['hudL'] + geo['hudR']) / 2 - w / 2) <= 1, f'{tag}: sahne ortada değil {geo}')
-        print('  hücre', round(geo['cell'], 1), 'sahne', round(geo['hudR'] - geo['hudL']))
+        if geo['wide']:
+            # geniş düzen: harita sol bilgi kartı ile sağ kule paneli arasında, ekran yüksekliğinde
+            check(geo['ox'] >= geo['hudR'] - 1 and geo['ox'] + geo['mapW'] <= geo['dockL'] + 1, f'{tag}: harita panellerin altında {geo}')
+            check(geo['oy'] >= 0 and geo['oy'] + geo['mapH'] <= h + 1, f'{tag}: harita ekrandan taşıyor {geo}')
+            check(geo['mapH'] >= h * 0.8, f'{tag}: harita ekranın yüksekliğini kullanmalı {geo}')
+        else:
+            # dar pencere: harita sahneye (HUD genişliği) ve HUD ile bar arasına sığmalı
+            check(geo['ox'] >= geo['hudL'] - 1 and geo['ox'] + geo['mapW'] <= geo['hudR'] + 1, f'{tag}: harita sahneden taşıyor {geo}')
+            check(geo['oy'] >= geo['hudB'] - 1 and geo['oy'] + geo['mapH'] <= geo['dockT'] + 1, f'{tag}: harita HUD/bar altında {geo}')
+            check(abs((geo['hudL'] + geo['hudR']) / 2 - w / 2) <= 1, f'{tag}: sahne ortada değil {geo}')
+        # seçili kule paneli (ustalık seçimi, en kalabalık hâli) kaydırma gerektirmemeli
+        pt = pg.evaluate("""async () => { const G = await import('./js/game.js'); const S = await import('./js/state.js'); const st = S.state;
+          st.run.souls = 9000; let t = null;
+          for (let r = 7; r < st.map.rows && !t; r++) for (let c = 2; c < st.map.cols && !t; c++) if (S.isBuildable(c, r)) { G.build('mortar', c, r); t = st.run.towers.at(-1); }
+          G.upgrade(t, -1); G.upgrade(t, -1);
+          const v = st.view; return { x: v.ox + (t.c + 0.5) * v.cell, y: v.oy + (t.r + 0.5) * v.cell }; }""")
+        pg.mouse.click(pt['x'], pt['y'])
+        pg.wait_for_timeout(450)
+        sc = pg.evaluate("() => { const p = document.querySelector('.panel'); return [p.scrollHeight, p.clientHeight]; }")
+        if geo['wide']:
+            check(sc[0] <= sc[1] + 1, f'{tag}: kule paneli kaydırma istiyor {sc}')
+        pg.screenshot(path=f'{OUT}/{tag}-6-panel.png')
+        pg.keyboard.press('Escape')
+        pg.wait_for_timeout(250)
+        print('  hücre', round(geo['cell'], 1), 'geniş' if geo['wide'] else 'dar', 'panel', sc)
         ctx.close()
 
     # ---------------------------------------------------------------- 2) fare + klavye

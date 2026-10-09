@@ -15,7 +15,7 @@
  *   hata bir kez bildirilir.
  * ========================================================================== */
 
-import { TIMING, GAME, STRINGS } from './config.js';
+import { TIMING, GAME, STRINGS, LAYOUT } from './config.js';
 import { EV, on, emit } from './events.js';
 import { language, detectLanguage, text, LANGUAGE_IDS } from './i18n.js';
 import { state, applySettings, applyRecords, applyProfile, serializeRun, setSetting } from './state.js';
@@ -43,6 +43,7 @@ function boot() {
   applyProfile(save.loadProfile());
 
   const canvas = document.getElementById('game');
+  applyLayout(); // geniş düzen mi? (render ve arayüz ilk ölçümden önce bilsin)
   audio.init(state.settings);
   fx.init();
   render.init(canvas);
@@ -173,11 +174,21 @@ async function syncWakeLock() {
 /* --------------------------------------------------------------------------
  * 3. EKRAN BOYUTU VE TARAYICI JESTLERİ
  * ------------------------------------------------------------------------ */
+/**
+ * Ekran düzeni: yatay ve büyük ekranda <html class="wide"> (bkz. config LAYOUT).
+ * CSS ve ui.js bu sınıfa göre paneli yanlara alır, menüleri çok sütunlu yapar.
+ */
+const wideQuery = typeof matchMedia === 'function' ? matchMedia(LAYOUT.wideQuery) : null;
+function applyLayout() {
+  document.documentElement.classList.toggle('wide', !!(wideQuery && wideQuery.matches));
+}
+
 function watchViewport() {
   let pending = 0;
   const onResize = () => {
     cancelAnimationFrame(pending);
     pending = requestAnimationFrame(() => {
+      applyLayout();
       render.resize();
       ui.measure();
     });

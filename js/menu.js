@@ -68,6 +68,9 @@ const KEYS = section('settings.keys');
 
 const COPYRIGHT = `© ${GAME.year} ${GAME.studio}`;
 
+/** Geniş düzen (bilgisayar, yatay tablet): main.js <html>'e .wide koyar. */
+const isWide = () => document.documentElement.classList.contains('wide');
+
 /* --------------------------------------------------------------------------
  * 1. DURUM VE KURULUM
  * ------------------------------------------------------------------------ */
@@ -100,6 +103,7 @@ export function init(rootEl) {
   root.classList.add('menu');
   root.addEventListener('click', onClick);
   root.addEventListener('keydown', onKeyActivate);
+  document.addEventListener('fullscreenchange', syncFullscreen);
   build();
 
   on(EV.OPEN, (what, kind, id) => {
@@ -127,6 +131,40 @@ function build() {
   buildSettings();
   ref('licenseBox').addEventListener('toggle', onLicenseToggle);
   licenseState = 'idle';
+  syncFullscreen();
+}
+
+/* — Tam ekran (bilgisayar): tarayıcının Fullscreen API'si. Desteklenmeyen
+     ya da izin vermeyen yerde (Android uygulaması, izinsiz çerçeve) düğme gizli. — */
+const fsSupported = () => !!(document.fullscreenEnabled && document.documentElement.requestFullscreen);
+const isFullscreen = () => !!document.fullscreenElement;
+
+function toggleFullscreen() {
+  if (!fsSupported()) return;
+  let p;
+  try {
+    p = isFullscreen() ? document.exitFullscreen() : document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+  } catch {
+    p = Promise.reject();
+  }
+  Promise.resolve(p).catch(() => emit(EV.TOAST, TXT.fullscreenFail, 'warn'));
+}
+
+/** Tam ekran düğmelerinin görünürlüğü, simgesi ve yazısı. */
+function syncFullscreen() {
+  if (!root) return;
+  const ok = fsSupported();
+  const on2 = isFullscreen();
+  const label = on2 ? TXT.windowed : TXT.fullscreen;
+  for (const b of root.querySelectorAll('[data-act="fullscreen"]')) {
+    b.hidden = !ok;
+    b.setAttribute('aria-label', label);
+    b.title = label;
+    b.setAttribute('aria-pressed', String(on2));
+    if (b.classList.contains('fs-btn')) b.innerHTML = on2 ? ICON.windowed : ICON.fullscreen;
+    const text = b.querySelector('.fs-label');
+    if (text) text.textContent = label;
+  }
 }
 
 /** Dil değişti: menü yeni dilde kurulur, oyuncu bulunduğu ekranda kalır. */
@@ -181,6 +219,7 @@ function layout() {
         <span class="credits-version">v${GAME.version}</span>
       </footer>
     </div>
+    <button type="button" class="fs-btn pc-only" data-act="fullscreen" hidden></button>
   </section>
 
   <section class="screen screen-sheet" data-screen="chapters" aria-label="${TXT.chapters}">
@@ -191,13 +230,17 @@ function layout() {
   <section class="screen screen-sheet" data-screen="difficulty" aria-label="${STRINGS.difficulty.title}">
     <header class="sheet-head">${backBtn()}<h2 data-ref="diffTitle">${STRINGS.difficulty.title}</h2></header>
     <div class="diff-scroll">
-      <div class="diff-chapter" data-ref="diffChapter"></div>
-      <div class="diff-list" data-ref="diffList"></div>
-      <h3 class="shop-section loadout-head"><span>${TXT.loadout}</span><b data-ref="loadoutCount"></b></h3>
-      <p class="shop-note">${template(TXT.loadoutHint, { n: LOADOUT_SIZE })}</p>
-      <div class="loadout" data-ref="loadout" role="group" aria-label="${TXT.loadout}"></div>
+      <div class="diff-col">
+        <div class="diff-chapter" data-ref="diffChapter"></div>
+        <div class="diff-list" data-ref="diffList"></div>
+      </div>
+      <div class="loadout-col">
+        <h3 class="shop-section loadout-head"><span>${TXT.loadout}</span><b data-ref="loadoutCount"></b></h3>
+        <p class="shop-note">${template(TXT.loadoutHint, { n: LOADOUT_SIZE })}</p>
+        <div class="loadout" data-ref="loadout" role="group" aria-label="${TXT.loadout}"></div>
+      </div>
     </div>
-    <button type="button" class="menu-btn primary wide" data-act="start">${STRINGS.difficulty.start}</button>
+    <button type="button" class="menu-btn primary block" data-act="start">${STRINGS.difficulty.start}</button>
   </section>
 
   <section class="screen screen-card" data-screen="pause" aria-label="${STRINGS.pause.title}">
@@ -524,6 +567,7 @@ function onClick(e) {
       break;
     }
     case 'showAll': setSetting('shopHideOwned', false); break;
+    case 'fullscreen': toggleFullscreen(); break;
     case 'resetProgress': resetProgress(); break;
     case 'wipeAll': wipeAll(); break;
     default: break;
@@ -926,7 +970,7 @@ function renderChapters() {
 
 /** Bölümün küçük harita resmi (bir kez çizilir, önbellekte durur). */
 function chapterThumb(id) {
-  const w = Math.round(64 * dpr);
+  const w = Math.round((isWide() ? 260 : 64) * dpr); // geniş düzende kartın üstünde büyük harita
   const src = mapThumb(createMap(id), w);
   const c = document.createElement('canvas');
   c.width = src.width;
@@ -1136,6 +1180,9 @@ function buildSettings() {
   const list = ref('settingsList');
   const groups = SETTINGS_GROUPS.map((gr) => {
     const rows = SETTINGS_SCHEMA.filter((s) => s.group === gr.id && s.view !== 'hidden').map(settingRow);
+    if (gr.id === 'display') {
+      rows.unshift(`<button type="button" class="set-row set-link pc-only" data-act="fullscreen" hidden><span class="fs-label">${TXT.fullscreen}</span><span class="set-value">F11</span></button>`);
+    }
     if (gr.id === 'data') rows.push(dataRows());
     if (!rows.length) return '';
     const note = gr.note ? `<p class="set-note">${gr.noteText}</p>` : '';
@@ -1518,12 +1565,12 @@ function infoTower(type) {
     def.targetsAir ? TXT.air : TXT.noAir,
     ownership(type),
   ];
-  wrap.innerHTML = `<p class="info-desc">${def.desc}</p>
+  wrap.innerHTML = `<div class="info-main"><p class="info-desc">${def.desc}</p>
     <div class="guide-facts">${facts.map((f) => `<span>${f}</span>`).join('')}</div>
     <h4 class="info-sub">${I.levels}</h4>
-    ${infoTable(def.levels.map((_, i) => template(I.level, { n: i + 1 })), rows)}
-    <h4 class="info-sub">${I.masteries}</h4>
-    <div class="info-masteries">${masteries}</div>`;
+    ${infoTable(def.levels.map((_, i) => template(I.level, { n: i + 1 })), rows)}</div>
+    <div class="info-side"><h4 class="info-sub">${I.masteries}</h4>
+    <div class="info-masteries">${masteries}</div></div>`;
   wrap.prepend(infoHead(cv, def.name, def.role, def.colors.glow));
   return wrap;
 }
@@ -1544,11 +1591,11 @@ function infoEnemy(type) {
     [I.souls, def.souls > 0 ? `${ICON.soul}${formatInt(def.souls)}` : '–'],
     [I.lives, def.lives >= 999 ? '∞' : formatInt(def.lives)],
   ];
-  wrap.innerHTML = `<p class="info-desc">${def.desc}</p>
-    <div class="guide-facts">${enemyTraits(def).map((t) => `<span>${t}</span>`).join('')}</div>
-    <h4 class="info-sub">${I.stats}</h4>
+  wrap.innerHTML = `<div class="info-main"><p class="info-desc">${def.desc}</p>
+    <div class="guide-facts">${enemyTraits(def).map((t) => `<span>${t}</span>`).join('')}</div></div>
+    <div class="info-side"><h4 class="info-sub">${I.stats}</h4>
     <dl class="info-stats">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
-    <p class="info-note">${I.enemyNote}</p>`;
+    <p class="info-note">${I.enemyNote}</p></div>`;
   wrap.prepend(infoHead(cv, def.name, def.title, def.boss ? 'var(--blood-hi)' : def.colors.eye));
   return wrap;
 }
@@ -1580,11 +1627,11 @@ function infoSkill(id) {
   const own = lv > 0
     ? template(I.ownedLevel, { n: lv, max: n })
     : meta.available('skill', id) ? template(I.notOwned, { n: formatInt(def.price) }) : template(M.locked, { n: ch.index + 1, name: ch.name });
-  wrap.innerHTML = `<p class="info-desc">${def.desc}</p>
-    <div class="guide-facts">${def.damage ? `<span>${TXT.damage} <b>${DAMAGE_TYPES[def.dmgType].label}</b></span>` : ''}<span>${own}</span></div>
-    <h4 class="info-sub">${I.levels}</h4>
+  wrap.innerHTML = `<div class="info-main"><p class="info-desc">${def.desc}</p>
+    <div class="guide-facts">${def.damage ? `<span>${TXT.damage} <b>${DAMAGE_TYPES[def.dmgType].label}</b></span>` : ''}<span>${own}</span></div></div>
+    <div class="info-side"><h4 class="info-sub">${I.levels}</h4>
     ${infoTable(lvls.map((i) => template(I.level, { n: i + 1 })), rows)}
-    <p class="info-note">${I.skillNote}</p>`;
+    <p class="info-note">${I.skillNote}</p></div>`;
   wrap.prepend(infoHead(icon, def.name, '', def.color));
   return wrap;
 }

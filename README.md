@@ -16,7 +16,7 @@
 - **12 kule**, her savaştan önce 6'sını seçersin. **9 beceri**, **39 düşman** (11 boss), **5 kale geliştirmesi**.
 - Bölümler sırayla açılır; kazandığın her zorluk bir yıldız (toplam 15).
 - Türkçe ve İngilizce. İnternetsiz çalışır; telefonda "Ana ekrana ekle" ile uygulama gibi kurulabilir.
-- Telefonda, tablette ve bilgisayarda oynanır. Bilgisayarda fare ve klavye: 1–6 kule, Boşluk dalga, F hız, Q / E yetenekler, U yükselt, X sat, sağ tık vazgeç.
+- Telefonda, tablette ve bilgisayarda oynanır; bilgisayarda tam ekran, geniş ekran düzeni. Fare ve klavye: 1–6 kule, Boşluk dalga, F hız, Q / E yetenekler, U yükselt, X sat, sağ tık vazgeç.
 
 ### Android'e kurulum
 
@@ -30,7 +30,7 @@
 - **12 towers** (pick 6 before each battle), **9 skills**, **39 enemies** (11 bosses), **5 castle upgrades**.
 - Chapters unlock in order; every difficulty you win is a star (15 in total).
 - Turkish and English. Works offline; can be installed from the browser with "Add to Home screen".
-- Plays on phones, tablets and computers. Mouse and keyboard on computers: 1–6 towers, Space wave, F speed, Q / E skills, U upgrade, X sell, right-click to cancel.
+- Plays on phones, tablets and computers; full-screen wide layout on computers. Mouse and keyboard: 1–6 towers, Space wave, F speed, Q / E skills, U upgrade, X sell, right-click to cancel.
 
 ### Installing on Android
 

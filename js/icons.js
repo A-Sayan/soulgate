@@ -37,4 +37,7 @@ export const ICON = Object.freeze({
   // bilgi: keşif kartı ve bilgi ekranı
   info: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="i-line" cx="12" cy="12" r="9"/><path class="i-line" d="M12 11v6"/><circle cx="12" cy="7.6" r="1.4"/></svg>',
   close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-line" d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>',
+  // tam ekran: dışa açılan köşeler / pencereye dönüş: içe kapanan köşeler
+  fullscreen: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-line" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>',
+  windowed: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-line" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>',
 });

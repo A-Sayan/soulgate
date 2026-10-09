@@ -12,7 +12,7 @@
  *  Dosya listesi değişirse VERSION artırılır.
  * ========================================================================== */
 
-const VERSION = 'soulgate-v5';
+const VERSION = 'soulgate-v6';
 
 const ASSETS = [
   './',

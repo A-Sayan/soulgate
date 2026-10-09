@@ -179,7 +179,7 @@ const LAYOUT = `
   </section>`;
 
 function buildBar() {
-  const size = 46;   // simge (CSS pikseli)
+  const size = 64;   // simgenin çizim çözünürlüğü (CSS pikseli); ekrandaki boyutu style.css verir (46 / geniş 58)
   const zoom = 1.14; // kule simgesi biraz büyütülür: tepesindeki boş pay ve ışıltı kırpılır, gövde öne çıkar
   el.bar.innerHTML = '';
   barBtns.clear();
@@ -199,7 +199,7 @@ function buildBar() {
     // yatayda ortalı, tabanı alt kenara oturur (taşan kısım üstten kırpılır)
     cv.getContext('2d').drawImage(src, Math.round((cv.width - src.width) / 2), cv.height - src.height);
     btn.appendChild(cv);
-    btn.insertAdjacentHTML('beforeend', `<span class="tower-cost">${ICON.soul}<b>${def.levels[0].cost}</b></span>`);
+    btn.insertAdjacentHTML('beforeend', `<span class="tower-name"></span><span class="tower-cost">${ICON.soul}<b>${def.levels[0].cost}</b></span>`);
     btn.addEventListener('pointerdown', (e) => onBarDown(type, e));
     btn.addEventListener('click', () => onBarClick(type));
     btn.addEventListener('contextmenu', (e) => e.preventDefault()); // uzun basışta tarayıcı menüsü çıkmasın
@@ -213,6 +213,7 @@ function labelBar() {
   for (const [type, btn] of barBtns) {
     const def = TOWERS[type];
     btn.setAttribute('aria-label', template(TXT.towerLabel, { name: def.name, cost: def.levels[0].cost }));
+    btn.querySelector('.tower-name').textContent = def.name; // geniş düzende görünür
   }
 }
 
@@ -374,11 +375,24 @@ export function measure() {
   const W = globalThis.innerWidth || hud.right;
   const H = globalThis.innerHeight || dock.bottom;
   const inset = state.view.inset;
-  const top = Math.round(hud.bottom + 4);
-  const bottom = Math.round(H - dock.top + 4);
-  // geniş ekranda arayüz ortadaki sahnede durur: harita da onun genişliğine sığar
-  const left = Math.max(0, Math.round(hud.left));
-  const right = Math.max(0, Math.round(W - hud.right));
+  let top, bottom, left, right;
+  if (document.documentElement.classList.contains('wide')) {
+    // geniş düzen: bilgi kartı solda, kule paneli sağda; harita aradaki bütün yüksekliği alır
+    const gap = 12;
+    top = gap;
+    bottom = gap;
+    left = Math.round(hud.right + gap);
+    right = Math.max(0, Math.round(W - dock.left + gap));
+    // seçili kule paneli dalga düğmesinin üstünde biter (OTO düğmesini örter: panel açıkken gerekmez)
+    const ctl = el.waveBtn.getBoundingClientRect();
+    root.style.setProperty('--panel-b', `${Math.round(H - ctl.top + 10)}px`);
+  } else {
+    top = Math.round(hud.bottom + 4);
+    bottom = Math.round(H - dock.top + 4);
+    // geniş ama alçak ekranda arayüz ortadaki sahnede durur: harita da onun genişliğine sığar
+    left = Math.max(0, Math.round(hud.left));
+    right = Math.max(0, Math.round(W - hud.right));
+  }
   uiLeft = Math.round(root.getBoundingClientRect().left);
   root.style.setProperty('--hud-h', `${Math.round(hud.bottom)}px`);
   layoutToasts(); // boss barı açılıp kapanınca keşif kartları kayar

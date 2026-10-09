@@ -6,13 +6,14 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
 ## 1. Kim, ne, nasıl konuşulur
 
 - **Oyun:** Soulgate: Tower Defense. Karanlık fantastik, dikey (portrait), mobil öncelikli kule savunma.
-  1.2.0'dan beri bilgisayarda da oynanır (her pencere boyutu, fare + klavye; bkz. bölüm 5 "Sahne ve bilgisayar").
+  1.2.0'dan beri bilgisayarda da oynanır (her pencere boyutu, fare + klavye); 1.3.0'dan beri bilgisayar ve yatay
+  tablette ayrı, tam ekran "geniş düzen" var (bkz. bölüm 5 "Sahne, geniş düzen ve bilgisayar").
 - **Künye:** Yayıncı Sayk Studio · Geliştirici A. Sayan · Yardımcı geliştirici S. Soytürk.
 - **Kullanıcı kodcu değil.** Her zaman Türkçe, sade dille konuş. Teknik terim yerine ne değiştiğini ve
   oyuncunun ne göreceğini anlat. Kodu kendisi telefonda Spck Editor ile açar ve önizler.
 - **Teslim alışkanlığı:** iş bitince kısa Türkçe özet, değişen dosyaların listesi, gerekiyorsa
   dosyalar (APK, zip) sohbete gönderilir. Uzun teknik anlatı yok.
-- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.2.1**). APK sürümü de buradan okunur.
+- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.3.0**). APK sürümü de buradan okunur.
 
 ## 2. Yayın kanalları (hepsi canlı)
 
@@ -20,7 +21,7 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
 |---|---|---|
 | GitHub deposu | `A-Sayan/soulgate` (public), dal `main` | push |
 | Tarayıcı sürümü | https://a-sayan.github.io/soulgate/ | `main`'e push → `.github/workflows/pages.yml` kendiliğinden yayımlar |
-| APK + web paketi | GitHub Releases (`v1.2.1` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
+| APK + web paketi | GitHub Releases (`v1.3.0` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
 | itch.io | Kullanıcının sayfası (kuruldu) | Kullanıcı elle yükler: Release'teki `Soulgate-x.y.z-web.zip` + `Soulgate-x.y.z.apk` |
 
 **Erişim:** Claude oturumları kullanıcının `m-Salih38` GitHub bağlantısıyla çalışır. `m-Salih38`, `A-Sayan/soulgate`
@@ -41,7 +42,7 @@ ve Release dosyası indirme çalışır. Bu yüzden **APK yerelde derlenmez, Git
 2. `js/config.js` → `GAME.version` artır (semver). Android `versionCode = a*10000 + b*100 + c` kendiliğinden hesaplanır.
    **Sürüm artırılmadan Release tetikleme** (aynı etiket zaten var).
 3. `.github/release-notes.md` güncelle (TR + EN, dosya adlarındaki sürüm).
-4. `sw.js`: oyun dosyası eklendi/silindiyse `ASSETS` listesini güncelle ve `VERSION`'ı artır (şu an `soulgate-v5`).
+4. `sw.js`: oyun dosyası eklendi/silindiyse `ASSETS` listesini güncelle ve `VERSION`'ı artır (şu an `soulgate-v6`).
 5. Commit + `git push origin main` → Pages kendiliğinden yayımlar.
 6. Release'i tetikle:
    `gh api repos/A-Sayan/soulgate/actions/workflows` ile release.yml kimliğini bul →
@@ -60,11 +61,16 @@ güncellenemez ve oyuncunun ilerlemesi silinir.
 
 - Saf ES modülleri + canvas. Derleme adımı yok, harici kütüphane yok, ağ isteği yok (tamamen çevrimdışı).
   Yazı tipleri `fonts/` içinde (Cinzel değişken + Inter 400/500/600/700, WOFF, OFL). Google Fonts kullanılmaz.
+  Inter, ekran için ayarlanmış (hinted) TrueType'tır (Windows'ta keskin); `tools/make-fonts.py` Inter 4.1 paketinin
+  `extras/ttf` dosyalarından aynı karakter kümesiyle üretir. Hinting'siz/CFF sürüme geri dönme (Windows'ta pikselli).
 - **Döngüsel import yok.** Katman sırası aşağıda; yukarı ya da aynı katmana haber `events.js` ile gider.
 - Mobil öncelikli, 60 FPS hedefi, bol "juice" (sarsıntı, parçacık, hit-pause, sayılar).
-- Telefonda (dik ekran) görünüm değişmez: geniş ekran kuralları yalnızca `min-aspect-ratio: 7/10`, fare kuralları
-  yalnızca `(hover: hover) and (pointer: fine)` altında. Arayüzde genişlik için `vw` değil `var(--stage-w)` kullan.
+- Telefonda (dik ekran) görünüm değişmez: geniş düzen kuralları yalnızca `.wide` (html sınıfı) ya da
+  `min-aspect-ratio: 7/10`, fare kuralları yalnızca `(hover: hover) and (pointer: fine)` altında. Arayüzde genişlik
+  için `vw` değil `var(--stage-w)` kullan. Bilgisayar düzeni telefonla eşit önemdedir: yeni bir ekran ya da panel
+  eklerken ikisini de tasarla ve `dev/desktop.py` ile `dev/e2e.py`'yi çalıştır.
 - Ses tamamen sentez (Web Audio), ses dosyası yok. Her bölümün kendi müziği (`audio.js` → `setTune`).
+  Müzikte sürekli bas uğultusu ve rüzgâr YOK (1.3.0'da kullanıcı isteğiyle kaldırıldı: boğuk, yorucu). Geri ekleme.
 - Onay için yalnızca özel pencere (`modal.js`). `alert/confirm/prompt` yok.
 - Ayarlar ve kayıtlar anında uygulanır/yazılır.
 - TODO ya da yarım özellik bırakılmaz.
@@ -110,14 +116,32 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
 | `sw.js` | Çevrimdışı önbellek (önce ağ). Yerel önizlemede kurulmaz |
 | `android/` | WebView kabuğu (bölüm 7) |
 
-**Sahne ve bilgisayar (1.2.0)**
+**Sahne, geniş düzen ve bilgisayar (1.2.0 → 1.3.0)**
 
-- `style.css` `:root` → `--stage-w`: telefonda `100vw`; geniş ekranda (en/boy ≥ 0.7) ekran yüksekliğinden hesaplanan
-  ortadaki dikey sütun (en az 390px, en çok 760px). `--side` = iki yandaki boşluk. Tuval (`#game`) hep tam ekrandır
-  (iki yanda bölümün havası akar); `.ui` sahnenin içindedir; `.screen-sheet` içeriği sahne genişliğinde, yanlar koyu
-  ve ince yaldız çizgili. Alçak + geniş ekranda (yükseklik ≤ 700px) ana menü yan yana dizilir (logo solda, düğmeler sağda).
-- `ui.measure()` HUD'un sol/sağ kenarını `state.view.inset.left/right`'a yazar; `render.resize()` haritayı o genişliğe sığdırır.
-  Yetenek küreleri `uiLeft` kadar kaydırılır (arayüz koordinatı ≠ tuval koordinatı).
+- Üç düzen: (1) telefon (dik): her şey eskisi gibi. (2) **Geniş düzen** (`html.wide`): `config LAYOUT.wideQuery` =
+  en/boy ≥ 5/4, genişlik ≥ 880, yükseklik ≥ 500 (bilgisayar, yatay tablet). `main.js applyLayout()` sınıfı açılışta ve her
+  yeniden boyutlanmada koyar. (3) Geniş ama küçük pencere (ör. 800×450, 1000×1200): ortada dikey sahne (`--stage-w`).
+  Yatay telefon (yükseklik < 500, dokunmatik) "dik tut" uyarısı alır.
+- Geniş düzen, oyun (style.css bölüm 15): `--stage-w: 100vw`, harita ortada ekran boyunca. Solda bilgi kartı (`.hud`:
+  can/ruh, dalga, hız/duraklat) ve altında keşif kartları; sağda `.dock` sütunu (2'li ızgarada adlı kuleler `.tower-name`,
+  altta OTO ve yatay dalga düğmesi). Kule/ana kule paneli sağ sütunda kulelerin üstünde açılır (`--panel-b` = dalga
+  düğmesinin üstü). Patron barı, afiş ve kısa mesajlar iki panelin arasında. `--panel-w` haritanın iki yanında kalan
+  yerden hesaplanır (250–340px). Alçak pencerede (≤ 760 / ≤ 580px) panel sıkışır; kule paneli hiçbir boyutta kaydırma
+  istememeli (desktop.py denetler).
+- `ui.measure()`: geniş düzende inset = hud.sağ / dock.sol (üst-alt 12px), telefonda HUD altı / bar üstü; `--hud-h`,
+  `--panel-b` yazar. `render.resize()` haritayı aradaki alana sığdırır. Yetenek küreleri `uiLeft` kadar kaydırılır.
+- **Haritanın çevresi** (`art/maps.js buildSurround`, `sprites.surroundLayer`, `render.drawSurround`): haritanın yanlarında
+  yer varsa zemin ekranın kenarına kadar uzanır (aynı tema, karartılmış, doğal süsler `NATURAL`, kenarda çukur gölgesi).
+  En çok 40px/hücre çözünürlükte, basamaklı boyutla önbelleğe alınır (yeniden boyutlanırken her kare çizilmez).
+  `drawGround/drawGroundExtras` artık dikdörtgen + yoğunluk alır; harita katmanının çıktısı birebir aynı kaldı.
+- Geniş düzen, menüler (bölüm 16): sayfalar `--sheet-w` (≤ 1240px) genişliğinde. Bölümler büyük harita kartlı ızgara
+  (`chapterThumb` geniş düzende 260px çizer); zorluk ekranı ızgara: solda bölüm + zorluklar, sağda kule seçimi, altında
+  başlat düğmesi (her sütun kendi içinde kayar); çarşı/rehber ızgara; bilgi ekranı `info-main` / `info-side` iki sütun;
+  ayarlar iki sütun (column-count); kartlar (duraklat, sonuç) daha geniş. Telefonda bu sarmalayıcılar `display: contents`.
+- Tam ekran (bilgisayar): ana menüde sol üstte `.fs-btn` ve Ayarlar → Görüntü'de satır (`data-act="fullscreen"`,
+  `menu.js toggleFullscreen/syncFullscreen`, Fullscreen API). Destek yoksa (Android, izinsiz çerçeve) gizli. `.pc-only` =
+  yalnızca fareyle görünen öğe. Tam butonların sınıfı `.menu-btn.block` (`.wide` artık html düzen sınıfı, karıştırma).
+- Telefonla eskisini karşılaştırmak için: ekran görüntüleri birebir aynı düzende olmalı (yalnızca yazı tipi pikselleri farklı).
 - "Dik tut" uyarısı (index.html) yalnızca dokunmatik telefonda yatayda (`hover: none` + `pointer: coarse`).
 - Girdi (`input.js`): farenin sağ tuşu oyun alanında `EV.CANCEL` (kurulum / nişan / panel kapanır, asla duraklatmaz);
   oyun sahnesinde kısayollar `EV.HOTKEY (eylem, ek)`: 1–6 bardaki kule, Boşluk dalga, F hız, Q / E sol / sağ yetenek,
@@ -151,7 +175,7 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
   Çarşı ürünleri bölümün `unlocks` listesiyle açılır. Rekorlar bölüm × zorluk bazında; eski biçimden geçiş var.
 - Savaştan önce en çok 6 kule seçilir (`LOADOUT_SIZE`).
 
-## 6. İçerik (1.2.1)
+## 6. İçerik (1.3.0)
 
 **Bölümler** (her biri 30 dalga; 10/20/30 patron):
 1. `kul-vadisi` Kül Vadisi (tek yol). 2. `ayaz-gecidi` Ayaz Geçidi (açar: lance, prism, thunder, timestop).
@@ -194,7 +218,7 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
 - `for f in js/*.js js/*/*.js; do node --check $f; done`, döngüsel import taraması, iki dilin anahtar eşitliği.
 - Tarayıcı testleri: depo kökünde `python3 -m http.server 8765 --bind 127.0.0.1`, sonra `python3 dev/e2e.py all`
   (telefon) ve `python3 dev/desktop.py` (bilgisayar: 8 pencere boyutu, fare + klavye; "SONUÇ: BAŞARILI" yazmalı).
-  Konsolda hata olmamalı. Ekran görüntülerine bakarak kontrol et.
+  Konsolda hata olmamalı. Ekran görüntülerine bakarak kontrol et (desktop.py 9 boyut: geniş, alçak, dev, ultra geniş).
 - Denge: `node dev/balance.mjs all easy,normal,hard full,mid` (iki kez çalıştır, sonuçlar rastgelelik içerir);
   yeni oyuncu: `node dev/balance.mjs kul-vadisi,ayaz-gecidi easy,normal,hard start starter`.
   Ekonomi ve patron hissi: `node dev/economy.mjs all easy,normal,hard full classic` (ruh kaynakları, harita doluluğu,
@@ -208,8 +232,10 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
 
 ## 9. Açık konular
 
-- 1.1.0 / 1.2.0 APK'sının kullanıcı telefonundaki denemesinin sonucu bekleniyor.
+- 1.2.1 APK kullanıcının telefonunda denendi: ses açma/kapama, geri tuşu ve diğerleri sorunsuz. 1.3.0'ın denemesi bekleniyor.
 - itch.io gömülü pencere boyutu kullanıcıda; oyun her boyutta açılır, dikey (ör. 540×960) ya da tam ekran düğmesi en iyisi.
 - Lisans ekranındaki bir madde (`strings.about.terms`, iki dilde) yazı tiplerinin "Google Fonts'tan yüklendiğini" söylüyor;
   oysa oyunla birlikte geliyorlar. Kullanıcıya söylendi, onayı olmadan değiştirilmedi.
+- Cinzel (başlık yazı tipi) değişken ve hinting'siz; bu ortamda ttfautohint yok. Windows'ta küçük Cinzel yazılar hâlâ
+  yumuşak görünebilir; geniş düzende küçük Cinzel boyutları büyütüldü.
 - Sandbox'tan `a-sayan.github.io` açılamaz. Pages'in sağlığı Actions/deployments durumundan okunur.

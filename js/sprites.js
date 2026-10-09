@@ -29,7 +29,7 @@ import { TAU, clamp, rgba, mixHex } from './utils.js';
 import { px, setPx, makeCanvas, surface } from './art/kit.js';
 import { TOWER_ART } from './art/towers.js';
 import { ENEMY_ART } from './art/enemies.js';
-import { buildMapLayer, TOP_MARGIN } from './art/maps.js';
+import { buildMapLayer, buildSurround, TOP_MARGIN } from './art/maps.js';
 
 /* --------------------------------------------------------------------------
  * 1. ÖLÇEK VE ÖNBELLEK
@@ -163,7 +163,36 @@ export function mapLayer(map) {
   return cached('map:' + map.id, () => buildMapLayer(map));
 }
 
-export { TOP_MARGIN };
+/**
+ * Haritanın çevresi (geniş ekranda ekranın kenarına kadar uzanan karanlık
+ * arazi). Karanlıkta kaldığı için en çok SURROUND.maxPx çözünürlükte çizilir
+ * ve büyütülerek basılır: büyük ekranda bellek ve çizim süresi düşük kalır.
+ * needX / needY: haritanın yanlarında ve üst-altında doldurulacak hücre sayısı.
+ * Çözünürlük ve genişlik basamaklı yuvarlanır; pencere boyutu sürüklenirken her
+ * karede yeniden çizilmez. Bölüm başına yalnızca son çizim saklanır.
+ */
+export const SURROUND = { maxPx: 40, pxStep: 6, cellStep: 4 };
+const surroundCache = new Map(); // bölüm → { key, s }
+
+export function surroundLayer(map, needX, needY) {
+  const step = (v, k, min) => Math.max(min, Math.ceil(v / k) * k);
+  const sp = Math.min(SURROUND.maxPx, step(px, SURROUND.pxStep, 6));
+  const ex = step(needX, SURROUND.cellStep, 4);
+  const ey = step(needY, SURROUND.cellStep, 4);
+  const key = `${sp}:${ex}:${ey}`;
+  const hit = surroundCache.get(map.id);
+  if (hit && hit.key === key) return hit.s;
+  const saved = px;
+  setPx(sp);
+  let s;
+  try {
+    s = buildSurround(map, ex, ey);
+  } finally {
+    setPx(saved);
+  }
+  surroundCache.set(map.id, { key, s });
+  return s;
+}
 
 /**
  * Bölüm seçimi için küçük harita resmi (geçit satırı dahil). Ölçek

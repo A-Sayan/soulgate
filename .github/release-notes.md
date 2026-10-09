@@ -1,27 +1,31 @@
-## Soulgate: Tower Defense 1.2.1
+## Soulgate: Tower Defense 1.3.0
 
 **Türkçe**
 
-- Denge: sıradan düşmanlar daha dayanıklı (ilk bölümlerde biraz daha fazla), 10. dalgadan sonra ruh daha yavaş artıyor ve dalga bonusu daha az büyüyor. Geç oyunda haritayı doldurup her kuleyi en üste çıkarmak artık kolay değil; harcama kararları önem kazanıyor.
-- Patron savaşları eskisi gibi: patronlar azalan ruha göre biraz hafifletildi. Son bölüm (Boşluk Tahtı) biraz daha fazla ruh veriyor.
-- Zorluklar: Çırak'ta ruh bonusu ×1.12'den ×1.08'e indi; Kâbus'ta ruh cezası kalktı (×0.95 → ×1.0), Kâbus eskisi kadar zor.
-- Kule barında kule simgeleri büyüdü, fiyatın yanında ruh simgesi var.
+- Bilgisayar ve tablet için yeni ekran düzeni: oyun tam ekran. Harita ortada, ekranın boyunca büyük duruyor; zemin ekranın kenarlarına kadar uzanıyor, siyah boşluk yok. Solda can, ruh, dalga ve hız; sağda adlarıyla kuleler ve dalga düğmesi. Seçili kulenin paneli sağda açılıyor, harita kapanmıyor, kaydırma gerekmiyor.
+- Menüler geniş ekrana göre yeniden dizildi: bölümler büyük harita kartlarıyla yan yana, zorluk ve kule seçimi iki sütun (başla düğmesi hep görünür), çarşı ve rehber ızgara, ayarlar ve bilgi ekranı iki sütun.
+- Bilgisayarda Tam Ekran düğmesi (ana menüde sol üstte ve Ayarlar → Görüntü'de).
+- Yazılar Windows'ta daha keskin: metin yazı tipinin ekran için ayarlanmış sürümü kullanılıyor.
+- Müzik: arkada sürekli çalan boğuk uğultu ve rüzgâr sesi kaldırıldı; akorlar daha net.
+- Telefonda görünüm ve oynanış aynı.
 
 **Dosyalar**
 
-- `Soulgate-1.2.1.apk`: Android telefona kurulur (Android 7 ve üstü). Eskisinin üstüne kurulur, ilerleme korunur.
-- `Soulgate-1.2.1-web.zip`: tarayıcı sürümü (itch.io'ya bu yüklenir).
+- `Soulgate-1.3.0.apk`: Android telefona kurulur (Android 7 ve üstü). Eskisinin üstüne kurulur, ilerleme korunur.
+- `Soulgate-1.3.0-web.zip`: tarayıcı sürümü (itch.io'ya bu yüklenir).
 
 ---
 
 **English**
 
-- Balance: regular enemies are tougher (a little more so in the early chapters); after wave 10 souls grow more slowly and the wave bonus grows less. Late in a run you can no longer easily fill the map and max every tower; spending choices matter.
-- Boss fights feel the same: bosses were eased slightly to match the leaner economy. The final chapter (Void Throne) gives a few more souls.
-- Difficulties: Apprentice's soul bonus went from ×1.12 to ×1.08; Nightmare's soul penalty is gone (×0.95 → ×1.0), so it stays as hard as before.
-- The tower bar has bigger tower icons and a soul icon next to each price.
+- New layout for computers and tablets: the game fills the screen. The map sits large in the middle, its ground reaching the screen edges, no black bars. Lives, souls, wave and speed on the left; named towers and the wave button on the right. The selected tower's panel opens on the right without covering the map and without scrolling.
+- Menus rebuilt for wide screens: chapters as large map cards side by side, difficulty and tower picks in two columns (the start button always visible), market and guide as grids, settings and info in two columns.
+- Full Screen button on computers (top left of the main menu, and Settings → Display).
+- Sharper text on Windows: the text font now uses its screen-tuned (hinted) version.
+- Music: the constant muffled drone and wind are gone; the chords are clearer.
+- Nothing changed on phones.
 
 **Files**
 
-- `Soulgate-1.2.1.apk`: install on an Android phone (Android 7+). Installs over the old version; progress is kept.
-- `Soulgate-1.2.1-web.zip`: browser build (for itch.io).
+- `Soulgate-1.3.0.apk`: install on an Android phone (Android 7+). Installs over the old version; progress is kept.
+- `Soulgate-1.3.0-web.zip`: browser build (for itch.io).

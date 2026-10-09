@@ -21,15 +21,16 @@
  *   HIT'in 5. argümanı true ise (zehir/yanma tiki) ses çalınmaz.
  *
  *  Müzik katmanları (yoğunluk 0..1 ile karışır)
- *   bas uğultusu + rüzgâr → hep var
  *   pad akorları          → Markov zinciriyle seçilir, döngü hissi vermez
+ *                           (1.3.0: sürekli bas uğultusu ve rüzgâr kaldırıldı —
+ *                           oyuncular boğuk ve yorucu buldu; boşluğu pad doldurur)
  *   çan/arp melodisi      → rastgele yürüyüş, yoğunlukla sıklaşır
  *   savaş davulları       → dalga sırasında girer
  *   pirinç vuruşları + Frigyen dizi → yalnızca boss sahadayken
  * ========================================================================== */
 
 import { AUDIO, ENEMIES, GRID, MAP_BY_ID } from './config.js';
-import { clamp, clamp01, lerp, rng, createRng, noise1 } from './utils.js';
+import { clamp, clamp01, lerp, rng, createRng } from './utils.js';
 import { EV, on } from './events.js';
 
 /* --------------------------------------------------------------------------
@@ -1122,10 +1123,10 @@ export const SFX_IDS = Object.freeze(Object.keys(SFX));
 const { bpm } = AUDIO.music;
 const STEP = 60 / bpm / 2; // sekizlik nota süresi
 /**
- * Bölümün müzik rengi: kök nota, dizi, boss dizisi ve rüzgâr. Her bölüm
- * kendi tonunda çalar (content/chapters.js → music). Menüde Kül Vadisi.
+ * Bölümün müzik rengi: kök nota, dizi ve boss dizisi. Her bölüm kendi
+ * tonunda çalar (content/chapters.js → music). Menüde Kül Vadisi.
  */
-const tune = { root: AUDIO.music.root, scale: AUDIO.music.scale, boss: AUDIO.music.altScale, wind: 1 };
+const tune = { root: AUDIO.music.root, scale: AUDIO.music.scale, boss: AUDIO.music.altScale };
 const MOODS = {
   menu: 0.12,
   calm: AUDIO.music.combatIntensity.calm,
@@ -1163,7 +1164,6 @@ const music = {
   chordLeft: 0,
   melody: 16,
   r: createRng((Date.now() ^ 0x5eed) >>> 0),
-  drone: null,
 };
 
 const smooth01 = (a, b, x) => {
@@ -1178,20 +1178,13 @@ function noteFreq(degree, octave, scale) {
   return tune.root * 2 ** (semis / 12);
 }
 
-/** Bölümün müziğine geçer; çalan uğultu yeni köke yumuşakça kayar. */
+/** Bölümün müziğine geçer; sıradaki akorlar yeni kökte çalar. */
 function setTune(mapId) {
   const m = MAP_BY_ID[mapId]?.music;
   tune.root = m ? m.root : AUDIO.music.root;
   tune.scale = m ? m.scale : AUDIO.music.scale;
   tune.boss = m ? m.boss : AUDIO.music.altScale;
-  tune.wind = m ? m.wind : 1;
-  const d = music.drone;
-  if (!d || !ctx) return;
-  const t = ctx.currentTime;
-  d.oscs.forEach((o, i) => o.frequency.setTargetAtTime(tune.root * DRONE_RATIOS[i], t, 1.5));
-  d.tOsc.frequency.setTargetAtTime(tune.root * 1.0595, t, 1.5);
 }
-const DRONE_RATIOS = [1, 1, 1.4983, 2];
 
 function pickWeighted(r, options) {
   let x = r.next();
@@ -1208,7 +1201,6 @@ function startMusic() {
   music.next = ctx.currentTime + 0.1;
   music.step = 0;
   music.chordLeft = 0;
-  music.drone = createDrone();
   music.timer = setInterval(musicTick, TICK_MS);
 }
 
@@ -1216,72 +1208,6 @@ function stopMusic() {
   if (!music.on) return;
   music.on = false;
   clearInterval(music.timer);
-  if (music.drone) {
-    const d = music.drone;
-    const t = ctx.currentTime;
-    d.gain.gain.cancelScheduledValues(t);
-    d.gain.gain.setTargetAtTime(0, t, 0.4);
-    for (const s of d.sources) s.stop(t + 2.5);
-    music.drone = null;
-  }
-}
-
-/** Sürekli bas uğultusu + rüzgâr + boss gerilim tonu. */
-function createDrone() {
-  const v = makeVoice(bus.music, 0.35, 0, 1);
-  const t = ctx.currentTime;
-  const gain = gainNode(v, 0);
-  gain.gain.setTargetAtTime(1, t, 1.5);
-  gain.connect(v.out);
-
-  const lp = filterNode(v, 'lowpass', 220, 0.9);
-  const body = gainNode(v, 0.07);
-  lp.connect(body);
-  body.connect(gain);
-  const sources = [];
-  const oscs = [];
-  [['sawtooth', -5], ['sawtooth', 5], ['triangle', 0], ['sine', 0]].forEach(([type, detune], i) => {
-    const o = v.track(ctx.createOscillator());
-    o.type = type;
-    o.frequency.value = tune.root * DRONE_RATIOS[i];
-    o.detune.value = detune;
-    o.connect(lp);
-    o.start(t);
-    sources.push(o);
-    oscs.push(o);
-  });
-
-  // Boss gerilimi: kökün yarım ses üstü — yalnızca boss sahadayken duyulur
-  const tension = gainNode(v, 0);
-  const tOsc = v.track(ctx.createOscillator());
-  tOsc.type = 'sawtooth';
-  tOsc.frequency.value = tune.root * 1.0595;
-  tOsc.connect(tension);
-  tension.connect(lp);
-  tOsc.start(t);
-  sources.push(tOsc);
-
-  // Rüzgâr: döngüdeki gürültü, gezinen bant geçiren süzgeçten
-  const windFilter = filterNode(v, 'bandpass', 500, 1.2);
-  const wind = gainNode(v, 0.03);
-  const ns = noiseNode(v, t, Infinity, true);
-  ns.connect(windFilter);
-  windFilter.connect(wind);
-  wind.connect(gain);
-  sources.push(ns);
-
-  return { gain, lp, tension, windFilter, wind, sources, oscs, tOsc };
-}
-
-function updateDrone(now) {
-  const d = music.drone;
-  if (!d) return;
-  const lvl = music.level;
-  const drift = noise1(now * 0.15, 7);
-  d.lp.frequency.setTargetAtTime(140 + drift * 220 + lvl * 260, now, 0.6);
-  d.tension.gain.setTargetAtTime(smooth01(0.85, 1, lvl) * 0.6, now, 0.8);
-  d.windFilter.frequency.setTargetAtTime(300 + noise1(now * 0.23, 11) * 700, now, 0.8);
-  d.wind.gain.setTargetAtTime((0.025 + noise1(now * 0.31, 3) * 0.03) * tune.wind, now, 0.8);
 }
 
 function musicTick() {
@@ -1294,7 +1220,6 @@ function musicTick() {
     music.next += STEP;
     music.step += 1;
   }
-  updateDrone(now);
 }
 
 function scheduleStep(t) {
@@ -1327,7 +1252,7 @@ function padChord(t, degree, length, scale, lvl) {
   const v = makeVoice(bus.music, 0.55, 0, 1);
   const attack = 2.2;
   const release = 3;
-  const lp = filterNode(v, 'lowpass', 260 + lvl * 1500, 0.7);
+  const lp = filterNode(v, 'lowpass', 600 + lvl * 1400, 0.7); // eskiden 260: uğultu kalkınca pad daha net duyulsun
   const g = gainNode(v);
   envelopeHold(g.gain, t, attack, 0.05, Math.max(0.1, length - attack), release);
   lp.connect(g);

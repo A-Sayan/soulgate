@@ -3,6 +3,8 @@
  *  Sorumluluk : Yazı tiplerini oyunla birlikte, internetsiz yüklemek.
  *  Cinzel (başlık ve sayılar, değişken ağırlık 400–900) ve Inter (metin,
  *  400/500/600/700). Türkçe ve oyunda geçen simgelerle sınırlı alt kümeler.
+ *  Inter ekran için ayarlanmış (hinted) TrueType'tır: Windows'ta küçük
+ *  boyutlarda da keskin. Yeniden üretmek için tools/make-fonts.py.
  *  Lisans: SIL Open Font License 1.1 (OFL-Cinzel.txt, OFL-Inter.txt).
  * ========================================================================== */
 

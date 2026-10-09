@@ -27,7 +27,7 @@ import { CHAPTER_DEFS } from './content/chapters.js';
 export const GAME = {
   title: 'Soulgate',
   fullTitle: 'Soulgate: Tower Defense',
-  version: '1.2.1',
+  version: '1.3.0',
   year: 2026,                 // ilk yayın yılı
   studio: 'Sayk Studio',      // yayıncı; telif satırında görünür
   owner: 'A. Sayan',          // telif sahibi
@@ -54,6 +54,18 @@ export const MAP_BY_ID = Object.fromEntries(MAPS.map((m) => [m.id, m]));
 export const MAP_ORDER = MAPS.map((m) => m.id);
 /** Bütün bölümlerde dalga sayısı aynıdır (kayıt doğrulaması ve arayüz için). */
 export const WAVE_COUNT = 30;
+
+/**
+ * EKRAN DÜZENİ (1.3.0). Yatay ve yeterince büyük ekranda (bilgisayar, yatay
+ * tablet) "geniş" düzen: harita ortada ekran boyunca, solda bilgi paneli,
+ * sağda kule ve dalga paneli; menüler çok sütunlu. Aksi hâlde telefon düzeni
+ * (geniş ama alçak ya da dar pencerede ortada dikey sahne). main.js bu sorguya
+ * göre <html>'e .wide sınıfı koyar; style.css ve ui.js o sınıfa bakar.
+ * Yatay telefon (yükseklik < 500) bu düzene girmez: orada "dik tut" uyarısı var.
+ */
+export const LAYOUT = {
+  wideQuery: '(min-aspect-ratio: 5/4) and (min-width: 880px) and (min-height: 500px)',
+};
 
 /* --------------------------------------------------------------------------
  * 3. ZAMAN
@@ -604,7 +616,7 @@ function deepFreeze(obj) {
 }
 
 [
-  GAME, GRID, MAPS, TIMING, ECONOMY, DIFFICULTIES, DIFFICULTY_ORDER, SCALING,
+  GAME, GRID, LAYOUT, MAPS, TIMING, ECONOMY, DIFFICULTIES, DIFFICULTY_ORDER, SCALING,
   WAVE_RULES, WAVE_TAGS, DAMAGE_TYPES, COMBAT, TOWER_STAT_DEFAULTS, TOWERS,
   TOWER_ORDER, TARGET_MODES, STAT_LABELS, ENEMIES, FEEL, QUALITY, MAP_BY_ID, MAP_ORDER,
   THEME, FONTS, AUDIO, DEFAULT_SETTINGS, SETTINGS_SCHEMA, SETTINGS_GROUPS, AUTO_WAVE, SAVE, STRINGS,

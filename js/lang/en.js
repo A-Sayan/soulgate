@@ -702,6 +702,9 @@ export default {
 
   menu: {
     mainAria: 'Main menu',
+    fullscreen: 'Full Screen',
+    windowed: 'Exit Full Screen',
+    fullscreenFail: 'Full screen is not available in this window',
     saved: 'Saved defense',
     beforeFirst: 'before the first wave',
     loadFailed: 'The save couldn’t be read. Start a new game.',

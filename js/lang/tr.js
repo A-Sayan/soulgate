@@ -716,6 +716,9 @@ export default {
   // Menülerin kısa metinleri (menu.js)
   menu: {
     mainAria: 'Ana menü',
+    fullscreen: 'Tam Ekran',
+    windowed: 'Tam Ekrandan Çık',
+    fullscreenFail: 'Tam ekran bu pencerede açılamıyor',
     saved: 'Kayıtlı savunma',
     beforeFirst: 'ilk dalgadan önce',
     loadFailed: 'Kayıt okunamadı, yeni bir oyun başlat.',

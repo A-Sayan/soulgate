@@ -28,8 +28,8 @@ export function buildMapLayer(map) {
   const lights = [];
   const th = map.theme;
 
-  drawGround(g, map, r, th);
-  drawGroundExtras(g, map, r, th, lights);
+  drawGround(g, mapRect(map), r, th);
+  drawGroundExtras(g, map, mapRect(map), r, th, lights);
   drawBuildTiles(g, map);
   drawPath(g, map, r, th, lights);
   drawPathEdges(g, map, r, th);
@@ -41,31 +41,102 @@ export function buildMapLayer(map) {
   return { ...s, lights };
 }
 
-function drawGround(g, map, r, th) {
-  const W = map.cols;
-  const H = map.rows;
-  g.fillStyle = lin(g, 0, -TOP_MARGIN, 0, H, [[0, th.ground[0]], [0.35, th.ground[1]], [1, th.ground[2]]]);
-  g.fillRect(0, -TOP_MARGIN, W, H + TOP_MARGIN);
-  for (let y = -TOP_MARGIN; y < H; y++) {
-    for (let x = 0; x < W; x++) {
+/**
+ * Haritanın ÇEVRESİ: geniş ekranda haritanın dört yanında ekranın kenarına
+ * kadar uzanan, aynı temada ama kararmış arazi (zemin, tema ayrıntıları ve
+ * bölümün süslerinden serpiştirilmiş). Oynanan alan aydınlık kalır; kenarına
+ * hafif bir çukur gölgesi düşer. Haritanın altında kalan iç kısım çizilmez
+ * (üstüne harita katmanı biner). ex/ey: yanlara ve alta-üste uzantı (hücre).
+ * Dönen yüzeyin (0, 0) noktası haritanın sol üst hücresidir.
+ */
+export function buildSurround(map, ex, ey) {
+  const rect = { x0: -ex, y0: -TOP_MARGIN - ey, x1: map.cols + ex, y1: map.rows + ey };
+  const W = rect.x1 - rect.x0;
+  const H = rect.y1 - rect.y0;
+  const s = surface(W, H, ex, TOP_MARGIN + ey);
+  const g = s.g;
+  const r = createRng(hashString(map.id + ':cevre'));
+  const th = map.theme;
+  const k = (W * H) / (map.cols * (map.rows + TOP_MARGIN));
+  const unused = []; // çevredeki ışıklar titremez (karanlıkta kalır)
+
+  drawGround(g, rect, r, th, k * 0.6, false);
+  drawGroundExtras(g, map, rect, r, th, unused, k * 0.8);
+
+  // süsler: bölümün kendi süslerinden yalnızca doğal olanlar (ağaç, kaya, mezar…)
+  // serpiştirilir; sunak, mangal, örs gibi tekil yapılar tekrar etmesin
+  const kinds = [...new Set(map.decor.map((d) => d.kind))].filter((kind) => DECOR[kind] && NATURAL.has(kind));
+  const spots = [];
+  if (kinds.length) {
+    for (let y = rect.y0; y < rect.y1; y++) {
+      for (let x = rect.x0; x < rect.x1; x++) {
+        const inside = x >= -1 && x <= map.cols && y >= -TOP_MARGIN - 1 && y <= map.rows;
+        if (inside || !r.chance(0.08)) continue;
+        spots.push([x + 0.5 + r.spread(0, 0.25), y + 0.5 + r.spread(0, 0.25), kinds[r.int(0, kinds.length - 1)]]);
+      }
+    }
+  }
+  spots.sort((a, b2) => a[1] - b2[1]);
+  for (const [x, y, kind] of spots) DECOR[kind](g, x, y, r, unused, th);
+
+  // karartma: oyun alanı öne çıksın, kenarlar karanlığa erisin
+  g.fillStyle = 'rgba(4,3,7,0.42)';
+  g.fillRect(rect.x0, rect.y0, W, H);
+  const cx = map.cols / 2;
+  const cy = (map.rows - TOP_MARGIN) / 2;
+  const inner = Math.hypot(map.cols, map.rows) * 0.42;
+  const outer = Math.hypot(W, H) * 0.55;
+  g.fillStyle = rad(g, cx, cy, outer, [[0, 'rgba(3,2,6,0)'], [inner / outer, 'rgba(3,2,6,0)'], [1, 'rgba(3,2,6,0.9)']]);
+  g.fillRect(rect.x0, rect.y0, W, H);
+  // oyun alanının kenarına çukur gölgesi (içeri değil, dışarı düşer)
+  const band = 0.7;
+  const edge = 'rgba(2,1,4,0.6)';
+  const clear = 'rgba(2,1,4,0)';
+  const top = -TOP_MARGIN;
+  g.fillStyle = lin(g, 0, 0, -band, 0, [[0, edge], [1, clear]]);
+  g.fillRect(-band, top, band, map.rows + TOP_MARGIN);
+  g.fillStyle = lin(g, map.cols, 0, map.cols + band, 0, [[0, edge], [1, clear]]);
+  g.fillRect(map.cols, top, band, map.rows + TOP_MARGIN);
+  g.fillStyle = lin(g, 0, map.rows, 0, map.rows + band, [[0, edge], [1, clear]]);
+  g.fillRect(-band, map.rows, map.cols + band * 2, band);
+  g.fillStyle = lin(g, 0, top, 0, top - band, [[0, edge], [1, clear]]);
+  g.fillRect(-band, top - band, map.cols + band * 2, band);
+  return s;
+}
+
+/** Haritanın kendi dikdörtgeni: x 0..sütun, y −TOP_MARGIN..satır (geçit satırı dahil). */
+const mapRect = (map) => ({ x0: 0, y0: -TOP_MARGIN, x1: map.cols, y1: map.rows });
+
+/**
+ * Zemin: tema gradyanı, karo dokusu, lekeler, benekler, ot öbekleri.
+ * rect: çizilecek alan (hücre birimi) · k: süs sayısı çarpanı (alan ile).
+ * Harita için rect = mapRect, k = 1: rastgele sayı sırası hep aynı kalır.
+ */
+function drawGround(g, rect, r, th, k = 1, tiles = true) {
+  const { x0, y0, x1, y1 } = rect;
+  g.fillStyle = lin(g, 0, y0, 0, y1, [[0, th.ground[0]], [0.35, th.ground[1]], [1, th.ground[2]]]);
+  g.fillRect(x0, y0, x1 - x0, y1 - y0);
+  // hücre dokusu yalnızca haritada: dışarıda ızgara izlenimi vermesin
+  for (let y = y0; y < y1 && tiles; y++) {
+    for (let x = x0; x < x1; x++) {
       const v = hash2(x, y, 7);
       fill(g, poly([[x, y], [x + 1, y], [x + 1, y + 1], [x, y + 1]]), v > 0.5 ? '#ffffff' : '#000000', Math.abs(v - 0.5) * 0.07);
     }
   }
   // lekeler ve benekler
-  for (let i = 0; i < 70; i++) {
-    const x = r.range(0, W);
-    const y = r.range(-TOP_MARGIN, H);
+  for (let i = 0; i < 70 * k; i++) {
+    const x = r.range(x0, x1);
+    const y = r.range(y0, y1);
     g.fillStyle = rad(g, x, y, r.range(0.4, 1.2), [[0, rgba(r.chance(0.5) ? th.blotch[0] : th.blotch[1], 0.35)], [1, 'rgba(0,0,0,0)']]);
     g.fillRect(x - 1.3, y - 1.3, 2.6, 2.6);
   }
-  for (let i = 0; i < 1600; i++) {
-    const x = r.range(0, W);
-    const y = r.range(-TOP_MARGIN, H);
+  for (let i = 0; i < 1600 * k; i++) {
+    const x = r.range(x0, x1);
+    const y = r.range(y0, y1);
     fill(g, circle(x, y, r.range(0.006, 0.02)), r.chance(0.6) ? th.speck[0] : th.speck[1], r.range(0.25, 0.6));
   }
   // ot öbekleri
-  for (let i = 0; i < 140; i++) tuft(g, r.range(0, W), r.range(-TOP_MARGIN, H), r, th);
+  for (let i = 0; i < 140 * k; i++) tuft(g, r.range(x0, x1), r.range(y0, y1), r, th);
 }
 
 function tuft(g, x, y, r, th) {
@@ -93,24 +164,23 @@ function onRoad(map, x, y, margin = 0.42, except = null) {
 }
 
 /* — Bölüme özgü zemin ayrıntıları (yolun altında kalır) — */
-function drawGroundExtras(g, map, r, th, lights) {
-  const W = map.cols;
-  const H = map.rows;
+function drawGroundExtras(g, map, rect, r, th, lights, k = 1) {
+  const { x0, y0, x1, y1 } = rect;
   switch (th.ambient) {
     case 'snow': {
       // kar örtüsü: yumuşak beyaz lekeler ve parıltılar
-      for (let i = 0; i < 46; i++) {
-        const x = r.range(0, W);
-        const y = r.range(-TOP_MARGIN, H);
+      for (let i = 0; i < 46 * k; i++) {
+        const x = r.range(x0, x1);
+        const y = r.range(y0, y1);
         const rr = r.range(0.5, 1.3);
         g.fillStyle = rad(g, x, y, rr, [[0, 'rgba(214,232,248,0.22)'], [0.6, 'rgba(190,214,236,0.1)'], [1, 'rgba(0,0,0,0)']]);
         g.fillRect(x - rr, y - rr, rr * 2, rr * 2);
       }
-      for (let i = 0; i < 220; i++) fill(g, circle(r.range(0, W), r.range(-TOP_MARGIN, H), r.range(0.008, 0.02)), '#eaf6ff', r.range(0.3, 0.8));
+      for (let i = 0; i < 220 * k; i++) fill(g, circle(r.range(x0, x1), r.range(y0, y1), r.range(0.008, 0.02)), '#eaf6ff', r.range(0.3, 0.8));
       // buz çatlakları
-      for (let i = 0; i < 12; i++) {
-        let x = r.range(0, W);
-        let y = r.range(0, H);
+      for (let i = 0; i < 12 * k; i++) {
+        let x = r.range(x0, x1);
+        let y = r.range(y0 + TOP_MARGIN, y1);
         const pts = [[x, y]];
         for (let k = 0; k < 4; k++) {
           x += r.spread(0, 0.35);
@@ -123,9 +193,9 @@ function drawGroundExtras(g, map, r, th, lights) {
     }
     case 'firefly': {
       // bataklık suyu birikintileri ve yosun
-      for (let i = 0; i < 18; i++) {
-        const x = r.range(0, W);
-        const y = r.range(0, H);
+      for (let i = 0; i < 18 * k; i++) {
+        const x = r.range(x0, x1);
+        const y = r.range(y0 + TOP_MARGIN, y1);
         if (onRoad(map, x, y, 0.7)) continue;
         const rx = r.range(0.25, 0.55);
         const ry = rx * r.range(0.45, 0.6);
@@ -134,18 +204,18 @@ function drawGroundExtras(g, map, r, th, lights) {
         fill(g, ell(x, y, rx, ry), '#0c1a12', 0.85);
         line(g, [[x - rx * 0.5, y - ry * 0.35], [x + rx * 0.2, y - ry * 0.45]], 0.014, '#4a6a4a', 0.5);
       }
-      for (let i = 0; i < 60; i++) {
-        const x = r.range(0, W);
-        const y = r.range(-TOP_MARGIN, H);
+      for (let i = 0; i < 60 * k; i++) {
+        const x = r.range(x0, x1);
+        const y = r.range(y0, y1);
         fill(g, blob([[x - 0.12, y], [x, y - 0.06], [x + 0.14, y - 0.01], [x + 0.03, y + 0.05]]), '#24361a', r.range(0.3, 0.6));
       }
       break;
     }
     case 'ember': {
       // lavın ısıttığı çatlaklar: koyu bazalt arasında kor
-      for (let i = 0; i < 22; i++) {
-        let x = r.range(0, W);
-        let y = r.range(-0.5, H);
+      for (let i = 0; i < 22 * k; i++) {
+        let x = r.range(x0, x1);
+        let y = r.range(y0 + TOP_MARGIN - 0.5, y1);
         const pts = [[x, y]];
         for (let k = 0; k < 5; k++) {
           x += r.spread(0, 0.45);
@@ -155,9 +225,9 @@ function drawGroundExtras(g, map, r, th, lights) {
         line(g, pts, 0.05, '#0a0404', 0.8);
         glowLine(g, pts, 0.014, r.chance(0.5) ? '#ff6a1a' : '#ff3a0a', 0.06);
       }
-      for (let i = 0; i < 30; i++) {
-        const x = r.range(0, W);
-        const y = r.range(-TOP_MARGIN, H);
+      for (let i = 0; i < 30 * k; i++) {
+        const x = r.range(x0, x1);
+        const y = r.range(y0, y1);
         g.fillStyle = rad(g, x, y, 0.6, [[0, 'rgba(255,90,20,0.08)'], [1, 'rgba(0,0,0,0)']]);
         g.fillRect(x - 0.6, y - 0.6, 1.2, 1.2);
       }
@@ -165,14 +235,14 @@ function drawGroundExtras(g, map, r, th, lights) {
     }
     case 'void': {
       // yıldız tozu ve boşluğa açılan ince yarıklar
-      for (let i = 0; i < 260; i++) {
-        const x = r.range(0, W);
-        const y = r.range(-TOP_MARGIN, H);
+      for (let i = 0; i < 260 * k; i++) {
+        const x = r.range(x0, x1);
+        const y = r.range(y0, y1);
         fill(g, circle(x, y, r.range(0.005, 0.016)), r.chance(0.3) ? '#e6c8ff' : '#8a6ac8', r.range(0.3, 0.9));
       }
-      for (let i = 0; i < 10; i++) {
-        let x = r.range(0, W);
-        let y = r.range(0, H);
+      for (let i = 0; i < 10 * k; i++) {
+        let x = r.range(x0, x1);
+        let y = r.range(y0 + TOP_MARGIN, y1);
         const pts = [[x, y]];
         for (let k = 0; k < 4; k++) {
           x += r.spread(0, 0.5);
@@ -330,6 +400,9 @@ function drawPathEdges(g, map, r, th) {
     }
   }
 }
+
+/** Haritanın çevresine serpiştirilebilen doğal süsler (buildSurround). */
+const NATURAL = new Set(['tree', 'rock', 'grave', 'pine', 'snowrock', 'deadtree', 'reeds', 'mushroom', 'obsidian', 'floatstone']);
 
 const DECOR = {
   tree(g, x, y, r) {

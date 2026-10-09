@@ -668,6 +668,12 @@ svg.ico-coin .i-hi {
   pointer-events: none;
 }
 
+/* kule adı yalnızca geniş düzende (bölüm 15) görünür */
+.tower-name {
+  display: none;
+  pointer-events: none;
+}
+
 /* fiyat: ruh simgesi + sayı; simgenin alt gölgesine hafifçe biner */
 .tower-cost {
   display: inline-flex;
@@ -1325,7 +1331,7 @@ svg.ico-coin .i-hi {
   color: var(--text-dim);
 }
 
-.menu-btn.wide {
+.menu-btn.block {
   width: 100%;
 }
 
@@ -1640,7 +1646,7 @@ svg.ico-coin .i-hi {
   color: var(--text-dim);
 }
 
-.screen-sheet > .menu-btn.wide {
+.screen-sheet > .menu-btn.block {
   margin-top: auto;
 }
 
@@ -3404,7 +3410,8 @@ input[type='range']::-moz-range-thumb {
   color: var(--bone);
 }
 
-.info-card > .guide-facts {
+.info-card > .guide-facts,
+.info-main > .guide-facts {
   margin-top: 0;
 }
 
@@ -4306,4 +4313,584 @@ i.star {
   color: var(--gold-hi);
   font: 700 11.5px/1.3 var(--sans);
   white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+ * 15. GENİŞ DÜZEN — OYUN (html.wide: yatay ve büyük ekran; bkz. config LAYOUT)
+ *  Harita ortada ekran boyunca; çevresi ekranın kenarına kadar arazi
+ *  (render.js drawSurround). Solda bilgi kartı (can, ruh, dalga, hız,
+ *  duraklat) ve altında keşif kartları; sağda kule ve dalga paneli. Seçili
+ *  kulenin paneli sağ sütunda kuleleri örterek açılır (dalga düğmesi görünür
+ *  kalır). Patron barı ve kısa mesajlar haritanın üstünde, ortada.
+ *  ui.measure() panellerin kenarlarını state.view.inset'e yazar; ayrıca
+ *  --hud-h (bilgi kartının altı) ve --panel-b (dalga düğmelerinin üstü) verir.
+ * ------------------------------------------------------------------------ */
+:root.wide {
+  --stage-w: 100vw; /* sahne bütün ekran: arayüz yanlara yerleşir */
+  --gap: 14px;
+  /* yan panel: haritanın (ekran yüksekliğine göre ≈ 0.54 × yükseklik) iki yanında
+     kalan yerin tamamı, 250–340px arası. Alçak ama geniş pencerede panel genişler,
+     metinler daha az satıra kırılır. */
+  --panel-w: clamp(250px, calc((100vw - (100vh - 24px) * 0.54) / 2 - 28px), 340px);
+}
+
+/* — Paneller: ortak kart görünümü — */
+.wide .hud,
+.wide .dock,
+.wide .panel {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* — Sol: bilgi kartı — */
+.wide .hud {
+  top: var(--gap);
+  left: var(--gap);
+  right: auto;
+  width: var(--panel-w);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 16px 16px 14px;
+  background: linear-gradient(180deg, rgba(20, 16, 25, 0.96), rgba(11, 9, 14, 0.96));
+}
+
+.wide .hud::after {
+  display: none;
+}
+
+.wide .hud-left {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.wide .stat {
+  gap: 8px;
+  font-size: 24px;
+}
+
+.wide .stat svg {
+  width: 22px;
+  height: 22px;
+}
+
+.wide .hud-center {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+
+.wide .wave-count {
+  justify-content: flex-start;
+}
+
+.wide .wave-count small {
+  font-size: 13px;
+}
+
+.wide .wave-count b {
+  font-size: 34px;
+}
+
+.wide .wave-count span {
+  font-size: 15px;
+}
+
+.wide .wave-sub {
+  max-width: none;
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.wide .hud-right {
+  justify-content: stretch;
+  gap: 10px;
+}
+
+.wide .hud-btn {
+  flex: 1;
+  width: auto;
+  height: 46px;
+  font-size: 16px;
+}
+
+/* — Sol: keşif kartları bilgi kartının altında — */
+.wide .discoveries,
+.wide .bossbar:not([hidden]) ~ .discoveries {
+  top: calc(var(--hud-h, 220px) + 12px);
+  left: var(--gap);
+  width: var(--panel-w);
+}
+
+.wide .discovery {
+  width: 100%;
+}
+
+/* — Orta: patron barı ve kısa mesajlar haritanın üstünde — */
+.wide .bossbar {
+  top: var(--gap);
+  left: calc(var(--panel-w) + var(--gap) * 3);
+  right: calc(var(--panel-w) + var(--gap) * 3);
+}
+
+.wide .toasts {
+  top: calc(var(--gap) + 6px);
+}
+
+.wide .bossbar:not([hidden]) ~ .toasts {
+  top: calc(var(--gap) + 64px);
+}
+
+/* — Sağ: kuleler ve dalga — */
+.wide .dock {
+  top: var(--gap);
+  right: var(--gap);
+  bottom: var(--gap);
+  left: auto;
+  width: var(--panel-w);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(20, 16, 25, 0.96), rgba(11, 9, 14, 0.96));
+}
+
+.wide .bar {
+  flex: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.wide .tower-btn {
+  height: auto;
+  min-height: 108px;
+  padding: 8px 6px 9px;
+  gap: 4px;
+}
+
+.wide .tower-icon {
+  width: 58px;
+  height: 58px;
+}
+
+.wide .tower-name {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  font: 600 12px/1.2 var(--sans);
+  color: var(--bone);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wide .tower-btn.poor .tower-name {
+  color: var(--text-dim);
+}
+
+.wide .tower-cost {
+  margin-top: 0;
+  font-size: 15px;
+}
+
+.wide .tower-cost svg {
+  width: 13px;
+  height: 13px;
+}
+
+.wide .tower-btn.active {
+  transform: none;
+}
+
+.wide .auto-btn {
+  position: static;
+  order: 1;
+  margin-top: auto;
+  align-self: center;
+}
+
+.wide .wave-btn {
+  order: 2;
+  width: 100%;
+  flex-direction: row;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 122, 47, 0.35);
+  border-radius: 12px;
+  background: radial-gradient(120% 140% at 30% 50%, rgba(255, 122, 47, 0.12), rgba(10, 7, 12, 0.6) 70%);
+}
+
+.wide .wave-btn:disabled {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(10, 7, 12, 0.5);
+}
+
+.wide .wave-dial {
+  width: 58px;
+  height: 58px;
+}
+
+.wide .wave-glyph svg {
+  width: 24px;
+  height: 24px;
+}
+
+.wide .wave-glyph b {
+  font-size: 15px;
+}
+
+.wide .wave-btn-label {
+  font-family: var(--serif);
+  font-size: 18px;
+}
+
+/* — Sağ: seçili kule / ana kule paneli, kulelerin üstünde — */
+.wide .panel,
+.wide .panel.keep {
+  top: var(--gap);
+  right: var(--gap);
+  bottom: var(--panel-b, 160px);
+  left: auto;
+  width: var(--panel-w);
+  max-height: none;
+  padding: 16px 16px 14px;
+  border-color: var(--line-strong);
+  border-radius: 14px;
+  transform: translateX(calc(100% + var(--gap) + 16px));
+}
+
+.wide .panel.open,
+.wide .panel.keep.open {
+  transform: none;
+}
+
+.wide .panel::before {
+  display: none;
+}
+
+.wide .panel-foot {
+  flex-wrap: wrap;
+}
+
+/* çok alçak pencere (≈ 500–580px): dalga düğmesi ve panel en sıkı hâlinde */
+@media (max-height: 580px) {
+  .wide .dock {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .wide .wave-btn {
+    padding: 6px 12px;
+  }
+
+  .wide .wave-dial {
+    width: 46px;
+    height: 46px;
+  }
+
+  .wide .panel-close {
+    width: 32px;
+    height: 32px;
+  }
+
+  .wide .mastery-head {
+    margin: 2px 0 6px;
+  }
+
+  .wide .mastery-card {
+    gap: 4px;
+  }
+
+  .wide .mastery-card small {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  .wide .panel-foot {
+    margin-top: 6px;
+  }
+}
+
+/* hedefleme: panel dar olduğunda (küçük ekran) etiket üstte, dört seçenek tam genişlikte */
+@media (max-width: 1200px) {
+  .wide .panel-target {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .wide .panel-target .seg {
+    width: 100%;
+  }
+
+  .wide .panel-target .seg button {
+    min-width: 0;
+    padding-inline: 2px;
+  }
+}
+
+/* alçak ekranda (dizüstü) panel kaydırma gerektirmesin diye sıkışır */
+@media (max-height: 760px) {
+  .wide .panel,
+  .wide .panel.keep {
+    padding: 12px 12px 10px;
+  }
+
+  .wide .panel-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .wide .panel-titles h3 {
+    font-size: 16px;
+  }
+
+  .wide .panel-stats {
+    margin: 8px 0 6px;
+  }
+
+  .wide .stat-row {
+    padding-block: 4px;
+  }
+
+  .wide .panel-target {
+    margin-bottom: 8px;
+  }
+
+  .wide .mastery-card {
+    padding: 8px 9px;
+  }
+
+  .wide .hud {
+    gap: 10px;
+    padding: 12px 14px 12px;
+  }
+
+  .wide .wave-count b {
+    font-size: 28px;
+  }
+}
+
+.wide .banner {
+  left: calc(var(--panel-w) + var(--gap) * 3);
+  right: calc(var(--panel-w) + var(--gap) * 3);
+}
+
+/* --------------------------------------------------------------------------
+ * 16. GENİŞ DÜZEN — MENÜLER
+ *  Sayfalar ekranın genişliğini kullanır (en çok --sheet-w): bölümler büyük
+ *  harita kartlarıyla yan yana, zorluk ve kule seçimi iki sütun, çarşı ve
+ *  rehber ızgara, ayarlar ve bilgi ekranı iki sütun. Telefonda sarmalayıcı
+ *  kutular (diff-col, loadout-col, info-main, info-side) görünmez
+ *  (display: contents): çocukları eskisi gibi tek sütunda akar.
+ * ------------------------------------------------------------------------ */
+.diff-col,
+.loadout-col,
+.info-main,
+.info-side {
+  display: contents;
+}
+
+/* yalnızca fare ve klavyeyle (bilgisayarda) görünen düğmeler */
+@media (hover: none), (pointer: coarse) {
+  .pc-only {
+    display: none !important;
+  }
+}
+
+/* ana menü: sol üstte tam ekran düğmesi */
+.fs-btn {
+  position: absolute;
+  top: calc(var(--safe-t) + 12px);
+  left: max(14px, var(--safe-l));
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: rgba(14, 11, 18, 0.85);
+  color: var(--bone);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.fs-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+:root.wide {
+  --sheet-w: min(1240px, calc(100vw - 64px));
+}
+
+.wide .screen-sheet {
+  padding: 18px max(32px, calc((100vw - var(--sheet-w)) / 2)) 22px;
+  gap: 16px;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(30, 22, 36, 0.6), transparent 70%),
+    linear-gradient(180deg, rgba(10, 8, 14, 0.975), rgba(6, 4, 9, 0.985));
+}
+
+.wide .sheet-head h2 {
+  font-size: 26px;
+}
+
+/* — Bölümler: büyük harita kartları yan yana — */
+.wide .chapter-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  align-content: start;
+  gap: 16px;
+}
+
+.wide .chapter-card {
+  grid-template-columns: 1fr;
+  align-items: start;
+  align-content: start;
+  gap: 12px;
+  padding: 10px 10px 14px;
+}
+
+.wide .chapter-thumb {
+  width: 100%;
+  height: clamp(140px, calc(100vh - 380px), 400px);
+}
+
+.wide .chapter-body {
+  padding: 0 4px;
+}
+
+/* — Zorluk + kule seçimi: iki sütun; başlat düğmesi sağ sütunun altında hep görünür.
+     Her sütun kendi içinde kayar (sığmazsa); sayfanın kendisi kaymaz. — */
+.wide .screen[data-screen='difficulty'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  column-gap: 36px;
+}
+
+.wide .screen[data-screen='difficulty'] .sheet-head {
+  grid-column: 1 / -1;
+}
+
+.wide .diff-scroll {
+  display: contents;
+}
+
+.wide .diff-col,
+.wide .loadout-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wide .diff-col {
+  grid-column: 1;
+  grid-row: 2 / 4;
+}
+
+.wide .loadout-col {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.wide .loadout {
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.wide .screen-sheet > .menu-btn.block {
+  grid-column: 2;
+  grid-row: 3;
+  width: 100%;
+}
+
+@media (max-height: 720px) {
+  .wide .diff-card {
+    gap: 3px;
+    padding-block: 9px;
+  }
+
+  .wide .diff-chapter {
+    padding-block: 8px;
+  }
+}
+
+/* — Çarşı ve rehber: ızgara — */
+.wide .shop-tabs,
+.wide .guide-tabs {
+  width: min(560px, 100%);
+}
+
+.wide .shop-filter {
+  width: min(560px, 100%);
+}
+
+.wide .shop-list,
+.wide .guide-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  align-content: start;
+  gap: 12px;
+}
+
+/* — Bilgi ekranı: solda açıklama ve değerler, sağda ustalıklar / istatistikler — */
+.wide .info-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px 40px;
+}
+
+.wide .info-head {
+  grid-column: 1 / -1;
+}
+
+.wide .info-main,
+.wide .info-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.wide .info-side > .info-sub:first-child {
+  margin-top: 0;
+}
+
+/* — Ayarlar: iki sütun — */
+.wide .settings-list {
+  display: block;
+  column-count: 2;
+  column-gap: 48px;
+}
+
+.wide .set-group,
+.wide .settings-list > .set-link {
+  break-inside: avoid;
+}
+
+/* — Lisans: okunur genişlikte, ortada — */
+.wide .about-body {
+  width: min(760px, 100%);
+  margin: 0 auto;
+}
+
+/* — Duraklatma ve sonuç kartları: geniş ekranda biraz daha geniş (başlık daha az satıra kırılır) — */
+.wide .card {
+  width: min(420px, 100%);
+}
+
+.wide .end-card {
+  width: min(500px, 100%);
 }
