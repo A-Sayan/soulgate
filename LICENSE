@@ -1,0 +1,120 @@
+SOULGATE: TOWER DEFENSE
+Telif Hakkı (c) 2026 Sayk Studio (A. Sayan). Tüm hakları saklıdır.
+
+--------------------------------------------------------------------------
+TÜRKÇE
+--------------------------------------------------------------------------
+
+1. Kapsam
+   Bu bildirim, Soulgate: Tower Defense oyununun tüm kaynak kodunu,
+   görsellerini, logosunu, ses tasarımını, müzik üretim kurallarını,
+   metinlerini, simgelerini ve oyun tasarımını ("Yazılım") kapsar.
+
+2. Saklı haklar
+   Yazılımın telif hakkı A. Sayan'a aittir ve Sayk Studio adıyla
+   yayımlanır. Yazılım, 5846 sayılı Fikir ve Sanat Eserleri Kanunu ve
+   uluslararası telif hakkı anlaşmalarıyla korunur. Kaynak kodun herkese
+   açık bir depoda görünür olması, hiçbir hakkın devredildiği ya da
+   lisans verildiği anlamına gelmez.
+
+3. İzin verilenler
+   Herkes, oyunu telif sahibinin yayımladığı resmi adreste oynayabilir ve
+   kişisel kullanımı için kendi cihazına uygulama olarak ekleyebilir.
+   Kodu, oyunun yayımlandığı platformun (ör. GitHub) kullanım şartlarının
+   zorunlu kıldığı ölçüde, yalnızca o platform içinde görüntülemek ve
+   çatallamak (fork) da bu kapsamdadır.
+
+4. Yasak olanlar
+   Telif sahibinin önceden verilmiş yazılı izni olmadan Yazılımın tamamı
+   ya da herhangi bir parçası:
+   a) kopyalanamaz, çoğaltılamaz, başka bir yerde yayımlanamaz;
+   b) değiştirilemez, uyarlanamaz, türev çalışmalarda kullanılamaz;
+   c) dağıtılamaz, satılamaz, kiralanamaz, alt lisansı verilemez;
+   d) ticari amaçla kullanılamaz, reklam ya da uygulama içi satın almayla
+      gelir elde etmek için kullanılamaz;
+   e) başka bir oyunda veya üründe parça olarak (kod, görsel, ses vb.)
+      kullanılamaz;
+   f) yapay zekâ veya makine öğrenmesi modellerinin eğitiminde veri
+      olarak kullanılamaz.
+
+5. Üçüncü taraf içerik
+   Cinzel ve Inter yazı tipleri oyunla birlikte (fonts/ klasöründe)
+   dağıtılır ve kendi lisanslarına (SIL Open Font License 1.1) tabidir;
+   lisans metinleri fonts/OFL-Cinzel.txt ve fonts/OFL-Inter.txt
+   dosyalarındadır. Logodaki harfler Cinzel yazı tipinden çizilmiştir;
+   yazı tiplerinin kendisi bu bildirimin kapsamında değildir.
+
+6. Sorumluluk reddi
+   Yazılım "olduğu gibi" sunulur. Telif sahibi, Yazılımın kullanımından
+   doğabilecek hiçbir doğrudan ya da dolaylı zarardan sorumlu tutulamaz.
+
+7. Uygulanacak hukuk
+   Bu bildirime Türkiye Cumhuriyeti hukuku uygulanır. Türkçe ve İngilizce
+   metinler arasında çelişki olursa Türkçe metin esas alınır.
+
+8. Künye
+   Yayıncı: Sayk Studio. Geliştirici: A. Sayan. Yardımcı geliştirici:
+   S. Soytürk.
+
+İzin talepleri için Sayk Studio ile iletişime geçin.
+
+--------------------------------------------------------------------------
+ENGLISH
+--------------------------------------------------------------------------
+
+Copyright (c) 2026 Sayk Studio (A. Sayan). All rights reserved.
+
+1. Scope
+   This notice covers all source code, graphics, the logo, sound design,
+   music generation rules, text, icons and game design of the game
+   Soulgate: Tower Defense (the "Software").
+
+2. Reserved rights
+   The copyright in the Software belongs to A. Sayan and the Software is
+   published under the name Sayk Studio. It is protected by Turkish Law
+   No. 5846 on Intellectual and Artistic Works and by international
+   copyright treaties. The source code being visible in a public
+   repository does not transfer any right or grant any license.
+
+3. What is permitted
+   Anyone may play the game at the official address published by the
+   copyright holder and add it to their own device as an app for
+   personal use. Viewing and forking the code solely within the hosting
+   platform (e.g. GitHub), to the extent that platform's terms of
+   service require, is also permitted.
+
+4. What is prohibited
+   Without the prior written permission of the copyright holder, the
+   Software, in whole or in part, may not be:
+   a) copied, reproduced or republished elsewhere;
+   b) modified, adapted or used in derivative works;
+   c) distributed, sold, rented or sublicensed;
+   d) used for commercial purposes, including earning revenue through
+      advertising or in-app purchases;
+   e) used as a component (code, graphics, audio, etc.) in another game
+      or product;
+   f) used as data for training artificial intelligence or machine
+      learning models.
+
+5. Third-party content
+   The Cinzel and Inter typefaces are distributed with the game (in the
+   fonts/ folder) and are subject to their own license (SIL Open Font
+   License 1.1); the license texts are in fonts/OFL-Cinzel.txt and
+   fonts/OFL-Inter.txt. The letters in the logo are drawn from the
+   Cinzel typeface; the typefaces themselves are not covered by this
+   notice.
+
+6. Disclaimer
+   The Software is provided "as is". The copyright holder shall not be
+   liable for any direct or indirect damages arising from its use.
+
+7. Governing law
+   This notice is governed by the laws of the Republic of Türkiye. In
+   case of conflict between the Turkish and English texts, the Turkish
+   text prevails.
+
+8. Credits
+   Publisher: Sayk Studio. Developer: A. Sayan. Assistant developer:
+   S. Soytürk.
+
+For permission requests, contact Sayk Studio.

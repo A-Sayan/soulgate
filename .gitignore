@@ -1,0 +1,16 @@
+# Android derleme çıktıları
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.iml
+
+# İmza anahtarları ASLA depoya girmez
+*.jks
+*.keystore
+*.p12
+
+# Sistem dosyaları
+.DS_Store
+Thumbs.db

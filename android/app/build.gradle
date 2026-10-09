@@ -1,0 +1,77 @@
+plugins {
+    id 'com.android.application'
+}
+
+/*
+ * Sürüm tek yerden gelir: oyunun js/config.js dosyasındaki GAME.version
+ * (ör. '1.1.0'). versionCode = ana*10000 + ara*100 + yama → 1.1.0 → 10100.
+ * Oyunun sürümünü yükseltmek APK'nın sürümünü de yükseltir.
+ */
+def webRoot = rootProject.file('..')
+def gameVersion = {
+    def m = (new File(webRoot, 'js/config.js').getText('UTF-8') =~ /version:\s*'(\d+)\.(\d+)\.(\d+)'/)
+    if (!m.find()) throw new GradleException('js/config.js içinde GAME.version bulunamadı')
+    [name: "${m.group(1)}.${m.group(2)}.${m.group(3)}",
+     code: m.group(1).toInteger() * 10000 + m.group(2).toInteger() * 100 + m.group(3).toInteger()]
+}()
+
+def keystorePath = System.getenv('SOULGATE_KEYSTORE')
+
+android {
+    namespace 'com.saykstudio.soulgate'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.saykstudio.soulgate'
+        minSdk 24
+        targetSdk 34
+        versionCode gameVersion.code
+        versionName gameVersion.name.toString()
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv('SOULGATE_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('SOULGATE_KEY_ALIAS')
+                keyPassword System.getenv('SOULGATE_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystorePath) signingConfig signingConfigs.release
+        }
+    }
+
+    lint {
+        // tek ekranlı WebView kabuğu: dikey kilit ve hedef SDK uyarıları derlemeyi durdurmasın
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += [layout.buildDirectory.dir('generated/web').get().asFile]
+        }
+    }
+}
+
+/* Oyun dosyaları her derlemede bir üst klasörden assets/www içine kopyalanır. */
+def copyWeb = tasks.register('copyWebAssets', Sync) {
+    from(webRoot) {
+        include 'index.html', 'style.css', 'manifest.webmanifest', 'LICENSE'
+        include 'js/**', 'icons/**', 'fonts/**'
+        exclude 'icons/*.py'
+    }
+    into layout.buildDirectory.dir('generated/web/www')
+}
+tasks.named('preBuild') { dependsOn copyWeb }

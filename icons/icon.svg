@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Soulgate simgesi: logodaki kapı + iki yan burç. tools/make-icon.py üretir. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="72%">
+      <stop offset="0" stop-color="#3b1419"/>
+      <stop offset="0.45" stop-color="#170a0f"/>
+      <stop offset="1" stop-color="#050407"/>
+    </radialGradient>
+    <radialGradient id="moon" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#c2412f" stop-opacity="0.9"/>
+      <stop offset="0.55" stop-color="#7a1c1c" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#3b1419" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="-790" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff6d8"/>
+      <stop offset="0.36" stop-color="#f2c860"/>
+      <stop offset="0.75" stop-color="#a8741f"/>
+      <stop offset="1" stop-color="#5a3a0c"/>
+    </linearGradient>
+    <linearGradient id="goldDim" x1="0" y1="-360" x2="0" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d9a640"/>
+      <stop offset="1" stop-color="#5e3b0e"/>
+    </linearGradient>
+    <radialGradient id="rift" cx="365" cy="-40" r="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff0d8"/>
+      <stop offset="0.16" stop-color="#ffb08a"/>
+      <stop offset="0.38" stop-color="#ff3b4e"/>
+      <stop offset="0.75" stop-color="#8a0f22"/>
+      <stop offset="1" stop-color="#2a0309"/>
+    </radialGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff2a3c" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#ff2a3c" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="frame"><rect width="512" height="512" rx="104"/></clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <g transform="translate(153.4 369) scale(0.28110)">
+      <circle cx="365" cy="-520" r="560" fill="url(#moon)"/>
+      <ellipse cx="365" cy="-260" rx="620" ry="460" fill="url(#halo)"/>
+      <path d="M168 -0 L168.2 -16.9 L168.8 -33.8 L169.8 -50.7 L171.2 -67.6 L173 -84.4 L175.3 -101.2 L177.9 -117.9 L180.9 -134.6 L184.3 -151.2 L188.1 -167.6 L192.3 -184 L196.9 -200.3 L201.9 -216.5 L207.2 -232.6 L213 -248.5 L219.1 -264.3 L225.6 -279.9 L232.5 -295.4 L239.7 -310.7 L247.3 -325.8 L255.2 -340.7 L263.5 -355.5 L272.2 -370 L281.2 -384.3 L290.6 -398.4 L300.2 -412.3 L310.2 -426 L320.6 -439.4 L331.2 -452.5 L342.2 -465.4 L353.4 -478.1 L365 -490.4 L365 -490.4 L376.6 -478.1 L387.8 -465.4 L398.8 -452.5 L409.4 -439.4 L419.8 -426 L429.8 -412.3 L439.4 -398.4 L448.8 -384.3 L457.8 -370 L466.5 -355.5 L474.8 -340.7 L482.7 -325.8 L490.3 -310.7 L497.5 -295.4 L504.4 -279.9 L510.9 -264.3 L517 -248.5 L522.8 -232.6 L528.1 -216.5 L533.1 -200.3 L537.7 -184 L541.9 -167.6 L545.7 -151.2 L549.1 -134.6 L552.1 -117.9 L554.7 -101.2 L557 -84.4 L558.8 -67.6 L560.2 -50.7 L561.2 -33.8 L561.8 -16.9 L562 0Z" fill="url(#rift)"/>
+      <g stroke="#1d1206" stroke-width="16" stroke-linejoin="round" paint-order="stroke">
+        <path d="M-130 40 L-130 -300 L90 -300 L90 40ZM-130 -298 L-130 -354 L-84 -354 L-84 -298ZM-43 -298 L-43 -354 L3 -354 L3 -298ZM44 -298 L44 -354 L90 -354 L90 -298ZM640 40 L640 -300 L860 -300 L860 40ZM640 -298 L640 -354 L686 -354 L686 -298ZM727 -298 L727 -354 L773 -354 L773 -298ZM814 -298 L814 -354 L860 -354 L860 -298Z" fill="url(#goldDim)"/>
+        <path d="M-360 40 L-360 -600 L-120 -600 L-120 40ZM-382 -570 L-382 -610 L-98 -610 L-98 -570ZM-382 -608 L-382 -680 L-318 -680 L-318 -608ZM-272 -608 L-272 -680 L-208 -680 L-208 -608ZM-162 -608 L-162 -680 L-98 -680 L-98 -608ZM850 40 L850 -600 L1090 -600 L1090 40ZM828 -570 L828 -610 L1112 -610 L1112 -570ZM828 -608 L828 -680 L892 -680 L892 -608ZM938 -608 L938 -680 L1002 -680 L1002 -608ZM1048 -608 L1048 -680 L1112 -680 L1112 -608Z" fill="url(#gold)"/>
+        <path d="M255.5 0 L277.5 0 L277.5 -236 L255.5 -236ZM354 0 L376 0 L376 -236 L354 -236ZM452.5 0 L474.5 0 L474.5 -236 L452.5 -236Z" fill="#2a1606" stroke="none" opacity="0.85"/>
+        <path d="M0 -0 L0.4 -26 L1.5 -51.9 L3.5 -77.8 L6.1 -103.6 L9.6 -129.3 L13.8 -155 L18.8 -180.4 L24.5 -205.8 L30.9 -230.9 L38.2 -255.9 L46.1 -280.6 L54.8 -305 L64.2 -329.3 L74.3 -353.2 L85.1 -376.8 L96.6 -400.1 L108.8 -423 L121.6 -445.5 L135.1 -467.7 L149.3 -489.5 L164.1 -510.8 L179.5 -531.7 L195.6 -552.1 L212.2 -572 L229.4 -591.4 L247.2 -610.3 L265.6 -628.7 L284.5 -646.5 L303.9 -663.8 L323.8 -680.5 L344.1 -696.5 L365 -712 L365 -712 L385.9 -696.5 L406.2 -680.5 L426.1 -663.8 L445.5 -646.5 L464.4 -628.7 L482.8 -610.3 L500.6 -591.4 L517.8 -572 L534.4 -552.1 L550.5 -531.7 L565.9 -510.8 L580.7 -489.5 L594.9 -467.7 L608.4 -445.5 L621.2 -423 L633.4 -400.1 L644.9 -376.8 L655.7 -353.2 L665.8 -329.3 L675.2 -305 L683.9 -280.6 L691.8 -255.9 L699.1 -230.9 L705.5 -205.8 L711.2 -180.4 L716.2 -155 L720.4 -129.3 L723.9 -103.6 L726.5 -77.8 L728.5 -51.9 L729.6 -26 L730 0ZM168 -0 L168.2 -16.9 L168.8 -33.8 L169.8 -50.7 L171.2 -67.6 L173 -84.4 L175.3 -101.2 L177.9 -117.9 L180.9 -134.6 L184.3 -151.2 L188.1 -167.6 L192.3 -184 L196.9 -200.3 L201.9 -216.5 L207.2 -232.6 L213 -248.5 L219.1 -264.3 L225.6 -279.9 L232.5 -295.4 L239.7 -310.7 L247.3 -325.8 L255.2 -340.7 L263.5 -355.5 L272.2 -370 L281.2 -384.3 L290.6 -398.4 L300.2 -412.3 L310.2 -426 L320.6 -439.4 L331.2 -452.5 L342.2 -465.4 L353.4 -478.1 L365 -490.4 L365 -490.4 L376.6 -478.1 L387.8 -465.4 L398.8 -452.5 L409.4 -439.4 L419.8 -426 L429.8 -412.3 L439.4 -398.4 L448.8 -384.3 L457.8 -370 L466.5 -355.5 L474.8 -340.7 L482.7 -325.8 L490.3 -310.7 L497.5 -295.4 L504.4 -279.9 L510.9 -264.3 L517 -248.5 L522.8 -232.6 L528.1 -216.5 L533.1 -200.3 L537.7 -184 L541.9 -167.6 L545.7 -151.2 L549.1 -134.6 L552.1 -117.9 L554.7 -101.2 L557 -84.4 L558.8 -67.6 L560.2 -50.7 L561.2 -33.8 L561.8 -16.9 L562 0Z" fill="url(#gold)" fill-rule="evenodd"/>
+        <path d="M-46 0 L208 0 L196 -42 L-34 -42ZM522 0 L776 0 L764 -42 L534 -42ZM307 -642 L423 -642 L401 -770 L329 -770ZM204.4 -236 L525.6 -236 L490.7 -318 L239.3 -318Z" fill="url(#gold)"/>
+      </g>
+      <g fill="#ffb347"><rect x="-255" y="-470" width="30" height="110" rx="15"/><rect x="-255" y="-250" width="30" height="100" rx="15"/><rect x="955" y="-470" width="30" height="110" rx="15"/><rect x="955" y="-250" width="30" height="100" rx="15"/></g>
+      <path d="M-560 40 L1290 40 L1290 90 L-560 90Z" fill="#0c080a"/>
+    </g>
+  </g>
+</svg>

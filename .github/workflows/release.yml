@@ -1,0 +1,94 @@
+# Sürüm çıkarır: imzalı Android APK'sı + itch.io'ya yüklenecek web paketi.
+# Çalışma: "v1.2.0" gibi bir etiket gönderilince ya da Actions sekmesinden
+# elle ("Run workflow"). Sürüm numarası js/config.js'teki GAME.version'dır.
+name: Sürüm (APK + web paketi)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sürümü oku
+        id: ver
+        run: |
+          v=$(grep -oP "version:\s*'\K[0-9]+\.[0-9]+\.[0-9]+" js/config.js | head -1)
+          if [ -z "$v" ]; then echo "::error::js/config.js içinde sürüm bulunamadı"; exit 1; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: İmza anahtarını hazırla
+        # Tek gizli değer: SOULGATE_SIGNING = "parola:anahtar-deposunun-base64'ü"
+        env:
+          SIGNING: ${{ secrets.SOULGATE_SIGNING }}
+        run: |
+          if [ -z "$SIGNING" ]; then
+            echo "::error::SOULGATE_SIGNING gizli değeri (secret) tanımlı değil"
+            exit 1
+          fi
+          pw="${SIGNING%%:*}"
+          printf '%s' "${SIGNING#*:}" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "::add-mask::$pw"
+          {
+            echo "SOULGATE_KEYSTORE=$RUNNER_TEMP/release.jks"
+            echo "SOULGATE_KEYSTORE_PASSWORD=$pw"
+            echo "SOULGATE_KEY_PASSWORD=$pw"
+            echo "SOULGATE_KEY_ALIAS=soulgate"
+          } >> "$GITHUB_ENV"
+
+      - name: APK derle
+        working-directory: android
+        run: |
+          set -o pipefail
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleRelease 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+
+      - name: Hata özeti
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import os
+          p = os.path.join(os.environ['RUNNER_TEMP'], 'gradle.log')
+          if os.path.exists(p):
+              lines = open(p, errors='replace').read().splitlines()
+              keep = [l for l in lines if l.strip()][-150:]
+              msg = '\n'.join(keep).replace('%', '%25').replace('\r', '').replace('\n', '%0A')
+              print(f'::error title=Gradle::{msg}')
+          PY
+
+      - name: APK'yı doğrula
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --verbose --print-certs "$APK"
+          "$BT/aapt2" dump badging "$APK" | head -5
+          mkdir -p dist
+          cp "$APK" "dist/Soulgate-${{ steps.ver.outputs.version }}.apk"
+
+      - name: Web paketi (itch.io)
+        run: |
+          mkdir -p stage
+          cp -r index.html style.css manifest.webmanifest sw.js LICENSE js icons fonts stage/
+          (cd stage && zip -r -9 -q "../dist/Soulgate-${{ steps.ver.outputs.version }}-web.zip" .)
+          ls -la dist
+
+      - name: GitHub sürümünü yayımla
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('v{0}', steps.ver.outputs.version) }}
+          name: Soulgate ${{ steps.ver.outputs.version }}
+          body_path: .github/release-notes.md
+          files: dist/*
+          make_latest: true

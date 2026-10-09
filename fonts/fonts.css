@@ -1,0 +1,47 @@
+/* ==========================================================================
+ *  SOULGATE — fonts/fonts.css
+ *  Sorumluluk : Yazı tiplerini oyunla birlikte, internetsiz yüklemek.
+ *  Cinzel (başlık ve sayılar, değişken ağırlık 400–900) ve Inter (metin,
+ *  400/500/600/700). Türkçe ve oyunda geçen simgelerle sınırlı alt kümeler.
+ *  Lisans: SIL Open Font License 1.1 (OFL-Cinzel.txt, OFL-Inter.txt).
+ * ========================================================================== */
+
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 400 900;
+  font-display: swap;
+  src: url('cinzel.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('inter-400.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('inter-500.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('inter-600.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('inter-700.woff') format('woff');
+}

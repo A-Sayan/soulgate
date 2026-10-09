@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#050407">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Soulgate: Tower Defense — a dark fantasy tower defense game. Build, upgrade and master your towers; hold the castle through thirty waves. / Karanlık fantastik bir kule savunma oyunu.">
+  <meta name="author" content="Sayk Studio">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Soulgate">
+  <title>Soulgate: Tower Defense</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <!-- Yazı tipleri oyunla birlikte gelir: internet olmadan da aynı görünür -->
+  <link rel="preload" href="fonts/cinzel.woff" as="font" type="font/woff" crossorigin>
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Açılış ekranı ve yatay uyarısı: style.css yüklenmeden de görünsün diye burada -->
+  <style>
+    .boot {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      background: radial-gradient(circle at 50% 42%, #1a1018, #050407 70%);
+      color: #e8b84a;
+      font-family: Cinzel, Georgia, 'Times New Roman', serif;
+      transition: opacity 0.6s ease;
+    }
+    .boot.gone {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .boot-logo {
+      display: block;
+      width: min(72vw, 300px, 44vh);
+      height: auto;
+    }
+    .boot-ember {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 122, 47, 0.15);
+      border-top-color: #ff7a2f;
+      animation: boot-spin 0.9s linear infinite;
+    }
+    @keyframes boot-spin {
+      to { transform: rotate(360deg); }
+    }
+    .boot noscript,
+    .boot-note {
+      max-width: 30ch;
+      font: 500 14px/1.5 system-ui, sans-serif;
+      color: #d9cfbf;
+      text-align: center;
+    }
+    .rotate-hint {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: #050407;
+      color: #d9cfbf;
+      font: 600 16px/1.5 system-ui, sans-serif;
+      text-align: center;
+    }
+    @media (orientation: landscape) and (max-height: 520px) {
+      .rotate-hint {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Oyun alanı"></canvas>
+  <div id="ui"></div>
+  <div id="menu"></div>
+
+  <div id="boot" class="boot" aria-live="polite">
+    <img class="boot-logo" src="icons/logo.svg" alt="Soulgate: Tower Defense" width="660" height="412">
+    <div class="boot-ember" aria-hidden="true"></div>
+    <noscript>Soulgate'i oynamak için tarayıcında JavaScript'i aç. / Turn on JavaScript in your browser to play Soulgate.</noscript>
+  </div>
+  <div class="rotate-hint">Soulgate dikey ekranda oynanır. Telefonunu dik tut.</div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
