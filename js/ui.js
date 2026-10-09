@@ -57,12 +57,18 @@ import { towerIcon, enemySprite } from './sprites.js';
 import { castleLevel, loadoutTowers } from './meta.js';
 import * as game from './game.js';
 import { resize as resizeRender } from './render.js';
-import { beginDrag, cancelDrag } from './input.js';
+import { beginDrag, cancelDrag, hoverCell } from './input.js';
 import { section, applyText } from './i18n.js';
 import { ICON } from './icons.js';
 
 /* Arayüze özgü kısa metinler: etkin dilden canlı okunur (lang: ui.*). */
 const TXT = section('ui');
+const KEYS = section('settings.keys'); // tuş adları (Boşluk / Space)
+
+/* Fareyle oynanıyor mu (bilgisayar)? İpuçları "dokun" yerine "tıkla" der.
+   Sorgu canlıdır: dokunmatik ekranlı bir dizüstünde fare takılınca değişir. */
+const MOUSE = typeof matchMedia === 'function' ? matchMedia('(hover: hover) and (pointer: fine)') : null;
+const mouse = () => !!(MOUSE && MOUSE.matches);
 
 /* --------------------------------------------------------------------------
  * 1. DURUM
@@ -75,6 +81,7 @@ let shownSouls = 0;
 let lastSoulsText = '';
 const orbs = [];               // yetenek küreleri (run.skills sırasıyla)
 let countdownTotal = 0;
+let uiLeft = 0;                // arayüzün ekrandaki sol kenarı (geniş ekranda sahne ortadadır)
 let fromBar = false;           // kurulum bardan sürüklenerek mi başladı
 let pressedWasActive = false;  // bar düğmesine basıldığında o tip zaten seçili miydi
 let sellArmed = 0;             // satış onayı için kalan süre
@@ -104,6 +111,7 @@ export function init(rootEl) {
   root.innerHTML = LAYOUT;
   for (const node of root.querySelectorAll('[data-el]')) el[node.dataset.el] = node;
   applyText(root);
+  el.waveBtn.dataset.hotkey = KEYS.space;
   bindHud();
   subscribe();
   if (typeof ResizeObserver === 'function') {
@@ -125,8 +133,8 @@ const LAYOUT = `
       <div class="wave-sub" data-el="waveSub"></div>
     </div>
     <div class="hud-right">
-      <button type="button" class="hud-btn speed" data-el="speedBtn" data-t-aria="ui.aria.speed">1×</button>
-      <button type="button" class="hud-btn" data-el="pauseBtn" data-t-aria="strings.pause.title">${ICON.pause}</button>
+      <button type="button" class="hud-btn speed" data-el="speedBtn" data-t-aria="ui.aria.speed" data-hotkey="F">1×</button>
+      <button type="button" class="hud-btn" data-el="pauseBtn" data-t-aria="strings.pause.title" data-hotkey="Esc">${ICON.pause}</button>
     </div>
   </header>
   <div class="bossbar" data-el="bossbar" hidden>
@@ -166,7 +174,7 @@ const LAYOUT = `
     <div class="panel-upgrade" data-el="panelUpgrade"></div>
     <div class="panel-foot">
       <div class="panel-record" data-el="panelRecord"></div>
-      <button type="button" class="btn btn-sell" data-el="sellBtn"></button>
+      <button type="button" class="btn btn-sell" data-el="sellBtn" data-hotkey="X"></button>
     </div>
   </section>`;
 
@@ -180,6 +188,7 @@ function buildBar() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'tower-btn';
+    btn.dataset.hotkey = String(barBtns.size + 1); // bilgisayarda köşede kısayol tuşu görünür
     btn.style.setProperty('--tower', def.colors.glow);
     const cv = document.createElement('canvas');
     cv.width = Math.round(size * dpr);
@@ -214,6 +223,7 @@ function buildOrbs() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `skill-orb side-${sk.side}`;
+    btn.dataset.hotkey = sk.side === 'left' ? 'Q' : 'E';
     btn.style.setProperty('--skill', SKILLS[sk.id].color);
     btn.innerHTML = `<span class="orb-ring"></span><span class="orb-icon">${ICON[sk.id]}</span><span class="orb-cost"></span>`;
     btn.addEventListener('click', () => onOrb(i));
@@ -242,7 +252,7 @@ function placeOrbs() {
   orbs.forEach((o, i) => {
     const side = state.run.skills[i].side;
     const wx = x + (side === 'left' ? -1.2 : 1.2);
-    const px = v.ox + wx * v.cell;
+    const px = v.ox + wx * v.cell - uiLeft; // küreler arayüzün içinde: sahnenin kaymasını düş
     const py = v.oy + (y - 0.85) * v.cell;
     const pos = `${size}|${Math.round(px)}|${Math.round(py)}`;
     if (pos === o.pos) return; // yalnızca değişince yaz (her kare stil yazmak boşa iş)
@@ -295,7 +305,7 @@ function onOrb(i) {
     state.ui.skillAim = i;
     play('ui_open');
     haptic('tap');
-    toast(template(TXT.aim, { name: def.name }), 'info');
+    toast(template(mouse() ? TXT.aimClick : TXT.aim, { name: def.name }), 'info');
     return;
   }
   if (game.cast(i)) labelOrbs();
@@ -308,6 +318,7 @@ function cancelAim() {
 /** Dil değişti: sabit etiketler ve o an görünen dinamik metinler yeniden yazılır. */
 function relocalize() {
   applyText(root);
+  el.waveBtn.dataset.hotkey = KEYS.space;
   labelBar();
   if (state.run) labelOrbs();
   for (const o of orbs) o.key = '';
@@ -357,15 +368,22 @@ export function measure() {
   if (!root || root.hidden) return;
   const hud = el.hud.getBoundingClientRect();
   const dock = el.dock.getBoundingClientRect();
+  const W = globalThis.innerWidth || hud.right;
   const H = globalThis.innerHeight || dock.bottom;
   const inset = state.view.inset;
   const top = Math.round(hud.bottom + 4);
   const bottom = Math.round(H - dock.top + 4);
+  // geniş ekranda arayüz ortadaki sahnede durur: harita da onun genişliğine sığar
+  const left = Math.max(0, Math.round(hud.left));
+  const right = Math.max(0, Math.round(W - hud.right));
+  uiLeft = Math.round(root.getBoundingClientRect().left);
   root.style.setProperty('--hud-h', `${Math.round(hud.bottom)}px`);
   layoutToasts(); // boss barı açılıp kapanınca keşif kartları kayar
-  if (inset.top === top && inset.bottom === bottom) return;
+  if (inset.top === top && inset.bottom === bottom && inset.left === left && inset.right === right) return;
   inset.top = top;
   inset.bottom = bottom;
+  inset.left = left;
+  inset.right = right;
   resizeRender();
 }
 
@@ -477,6 +495,10 @@ function subscribe() {
   on(EV.TAP, onTap);
   on(EV.DRAG, onDrag);
   on(EV.DRAG_END, onDragEnd);
+  on(EV.CANCEL, () => {
+    if (playing()) handleBack(); // sağ tık: yalnızca vazgeçer, oyunu duraklatmaz
+  });
+  on(EV.HOTKEY, onHotkey);
 }
 
 const playing = () => state.scene === 'game' && state.run && !state.run.over && !state.run.paused;
@@ -486,6 +508,10 @@ const playing = () => state.scene === 'game' && state.run && !state.run.over && 
  * ------------------------------------------------------------------------ */
 function onBarDown(type, ev) {
   suppressClick = false;
+  if (ev.pointerType === 'mouse' && ev.button !== 0) {
+    if (ev.button === 2) onLongPress(type); // sağ tık: basılı tutmakla aynı, bilgi ekranı
+    return;
+  }
   if (!playing()) return;
   armLongPress(type, ev); // ruh yetmese de bilgi ekranı açılabilir
   pressedWasActive = state.ui.buildType === type;
@@ -562,7 +588,7 @@ function onBarClick(type) {
   haptic('tap');
   if (!hinted.tap) {
     hinted.tap = true;
-    toast(TXT.tapToPlace, 'info');
+    toast(mouse() ? TXT.clickToPlace : TXT.tapToPlace, 'info');
   }
 }
 
@@ -640,7 +666,7 @@ function onTap(c, r, x, y) {
     if (!ui.ghostValid) deny(game.canBuild(ui.buildType, c, r).reason === 'souls' ? TXT.noSouls : TXT.badCell);
     else if (!hinted.again) {
       hinted.again = true;
-      toast(TXT.tapAgain, 'info');
+      toast(mouse() ? TXT.clickAgain : TXT.tapAgain, 'info');
     }
     return;
   }
@@ -810,7 +836,7 @@ function renderPanel(force = false) {
   if (!opt) {
     el.panelUpgrade.innerHTML = `<div class="maxed">✦ ${STRINGS.panel.maxed} ✦</div>`;
   } else if (opt.kind === 'level') {
-    el.panelUpgrade.innerHTML = `<button type="button" class="btn btn-primary btn-upgrade" data-up="-1">${STRINGS.panel.upgrade} ${ICON.soul}<b>${opt.cost}</b></button>`;
+    el.panelUpgrade.innerHTML = `<button type="button" class="btn btn-primary btn-upgrade" data-up="-1" data-hotkey="U">${STRINGS.panel.upgrade} ${ICON.soul}<b>${opt.cost}</b></button>`;
   } else {
     el.panelUpgrade.innerHTML = `<div class="mastery-head">${STRINGS.panel.mastery}</div><div class="mastery">${opt.options.map(
       (o) => `<button type="button" class="mastery-card" data-up="${o.index}"><strong>${o.name}</strong><small>${o.desc}</small><b>${ICON.soul}${o.cost}</b></button>`,
@@ -1102,6 +1128,7 @@ function showDiscovery({ kind, id }) {
 function fillDiscovery(card) {
   const { kind, id } = card.dataset;
   const D = TXT.discover;
+  const open = mouse() ? D.openClick : D.open;
   let kicker = D[kind];
   let name = '';
   let color = THEME.gold;
@@ -1131,10 +1158,10 @@ function fillDiscovery(card) {
   }
   card.style.setProperty('--accent', color);
   card.innerHTML = `<span class="disc-icon">${kind === 'skill' ? ICON[id] : ''}</span>
-    <span class="disc-text"><small>${kicker}</small><b>${name}</b><em>${D.open}</em></span>
+    <span class="disc-text"><small>${kicker}</small><b>${name}</b><em>${open}</em></span>
     <span class="disc-info">${ICON.info}</span><span class="disc-bar"></span>`;
   if (icon) card.querySelector('.disc-icon').appendChild(icon);
-  card.setAttribute('aria-label', `${kicker}: ${name}. ${D.open}`);
+  card.setAttribute('aria-label', `${kicker}: ${name}. ${open}`);
 }
 
 /**
@@ -1361,4 +1388,70 @@ function resetTransient() {
   el.toasts.innerHTML = '';
   el.banner.classList.remove('show');
   el.bossbar.hidden = true;
+}
+
+/* --------------------------------------------------------------------------
+ * 10. KISAYOL TUŞLARI (bilgisayar)
+ *  input.js yalnızca oyun sahnesinde HOTKEY yayar; burada yalnızca oyun
+ *  akarken (duraklatma, bilgi ekranı ya da oyun sonu değilken) uygulanır.
+ *  Her tuş ekrandaki düğmenin yaptığını yapar ve o düğme kısaca "basılır".
+ * ------------------------------------------------------------------------ */
+function onHotkey(action, arg) {
+  if (!playing()) return;
+  if (action === 'tower') pickTowerByKey(arg);
+  else if (action === 'wave') {
+    pressFx(el.waveBtn);
+    if (el.waveBtn.disabled) play('ui_deny');
+    else el.waveBtn.click();
+  } else if (action === 'speed') {
+    pressFx(el.speedBtn);
+    el.speedBtn.click();
+  } else if (action === 'skill') {
+    const i = state.run.skills.findIndex((sk) => sk.side === arg);
+    if (i < 0 || !orbs[i]) return;
+    pressFx(orbs[i].btn);
+    onOrb(i);
+  } else if (action === 'upgrade') {
+    const b = panelMode === 'tower' ? el.panelUpgrade.querySelector('[data-up="-1"]') : null;
+    if (!b) return; // ustalıkta iki seçenek var: seçimi oyuncu tıklayarak yapar
+    pressFx(b);
+    b.click();
+  } else if (action === 'sell') {
+    if (panelMode !== 'tower' || el.sellBtn.hidden) return;
+    pressFx(el.sellBtn);
+    el.sellBtn.click(); // ilk basış kurar, ikincisi satar (dokunmadaki gibi)
+  }
+}
+
+/** Bardaki sıradaki kuleyi seçer ya da (zaten seçiliyse) bırakır; hayalet farenin altında belirir. */
+function pickTowerByKey(index) {
+  const entry = [...barBtns][index];
+  if (!entry) return;
+  const [type, btn] = entry;
+  pressFx(btn);
+  if (state.ui.buildType === type) {
+    exitBuild();
+    play('ui_close');
+    return;
+  }
+  const check = barCheck(type);
+  if (!check.ok) {
+    deny(check.reason === 'locked' ? template(TXT.locked, { name: TOWERS[type].name }) : TXT.noSouls);
+    return;
+  }
+  cancelAim();
+  enterBuild(type);
+  fromBar = false;
+  play('ui_tap');
+  const cell = hoverCell();
+  if (cell) setGhost(cell.c, cell.r);
+}
+
+/** Klavyeyle basılan düğme, dokunulmuş gibi kısa bir an içe göçer. */
+function pressFx(node) {
+  if (!node) return;
+  node.classList.remove('key-press');
+  void node.offsetWidth; // aynı düğmeye art arda basılınca animasyon yeniden başlasın
+  node.classList.add('key-press');
+  setTimeout(() => node.classList.remove('key-press'), 140);
 }

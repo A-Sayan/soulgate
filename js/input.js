@@ -1,7 +1,7 @@
 /* ==========================================================================
  *  SOULGATE — input.js
  *  Sorumluluk : Dokunma / fare / klavye / Android geri tuşunu anlamlı
- *               olaylara çevirmek: TAP, DRAG, DRAG_END, BACK.
+ *               olaylara çevirmek: TAP, DRAG, DRAG_END, BACK, CANCEL, HOTKEY.
  *               Ne yapılacağına KARAR VERMEZ (o ui.js'in işi).
  *  Bağımlılık : events (0) · state (1).
  *
@@ -12,6 +12,10 @@
  *   DRAG_END → sürükleme bitti; tuval dışında (ör. bara geri) bırakıldıysa
  *              sütun = satır = −1 → arayüz bunu "iptal" sayar
  *   BACK     → Esc / Backspace / P / Android geri tuşu
+ *   CANCEL   → oyun alanında farenin sağ tuşu (kurulumu / paneli kapatır)
+ *   HOTKEY   → oyundayken kısayol tuşları (bilgisayar):
+ *              1–6 bardaki kule · Boşluk dalga · F hız · Q / E sol / sağ
+ *              yetenek · U yükselt · X ya da Delete sat
  *
  *  KULE BARINDAN SÜRÜKLEME
  *   ui.js bir bar düğmesinin pointerdown'unda beginDrag(olay) çağırır;
@@ -29,6 +33,15 @@ let canvas = null;
 let active = null;         // { id, sx, sy, t0, moved, external }
 let backTrap = false;
 const world = { x: 0, y: 0 };
+const hover = { x: 0, y: 0, on: false }; // farenin oyun alanındaki son yeri (ekran pikseli)
+let tabbing = false;       // odak Tab ile mi geldi (klavyeyle gezinen biri Boşlukla düğmeye basabilsin)
+
+/* Kısayol tuşları: tuşun yazdığı harf (klavye düzeni ne olursa olsun F = hız) */
+const HOTKEYS = {
+  1: ['tower', 0], 2: ['tower', 1], 3: ['tower', 2], 4: ['tower', 3], 5: ['tower', 4], 6: ['tower', 5],
+  ' ': ['wave'], f: ['speed'], q: ['skill', 'left'], e: ['skill', 'right'],
+  u: ['upgrade'], x: ['sell'], Delete: ['sell'],
+};
 
 /** Dinleyicileri kurar. main.js bir kez çağırır. */
 export function init(el) {
@@ -38,7 +51,13 @@ export function init(el) {
   window.addEventListener('pointerup', onUp);
   window.addEventListener('pointercancel', onCancel);
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  canvas.addEventListener('pointerleave', (e) => {
+    if (e.pointerType === 'mouse') hover.on = false;
+  });
   window.addEventListener('keydown', onKey);
+  window.addEventListener('pointerdown', () => {
+    tabbing = false;
+  }, { capture: true, passive: true });
   window.addEventListener('popstate', onPop);
 }
 
@@ -51,6 +70,17 @@ export function beginDrag(ev) {
 }
 
 export const isDragging = () => !!active && active.moved;
+
+/**
+ * Fare şu an oyun alanının üstündeyse altındaki hücre ({ c, r }), değilse null.
+ * Klavyeyle kule seçilince hayalet kule farenin olduğu yerde belirsin diye.
+ */
+export function hoverCell() {
+  if (!hover.on || !canvas || !overCanvas(hover.x, hover.y)) return null;
+  const rect = canvas.getBoundingClientRect();
+  screenToWorld(hover.x - rect.left, hover.y - rect.top, world);
+  return { c: Math.floor(world.x), r: Math.floor(world.y) };
+}
 
 /** Sürüklemeyi sessizce bırakır (ör. oyun duraklatıldığında). */
 export function cancelDrag() {
@@ -75,12 +105,22 @@ export function setBackTrap(on) {
  * İŞARETÇİ OLAYLARI
  * ------------------------------------------------------------------------ */
 function onDown(ev) {
-  if (active || (ev.pointerType === 'mouse' && ev.button !== 0)) return; // ikinci parmak / sağ tık yok sayılır
+  if (ev.pointerType === 'mouse' && ev.button === 2 && !active) {
+    ev.preventDefault();
+    emit(EV.CANCEL); // sağ tık: vazgeç
+    return;
+  }
+  if (active || (ev.pointerType === 'mouse' && ev.button !== 0)) return; // ikinci parmak / orta tuş yok sayılır
   ev.preventDefault();
   active = { id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, t0: ev.timeStamp, moved: false, external: false };
 }
 
 function onMove(ev) {
+  if (ev.pointerType === 'mouse') {
+    hover.x = ev.clientX;
+    hover.y = ev.clientY;
+    hover.on = ev.target === canvas;
+  }
   if (!active) {
     // fare gezinmesi: kurulum modunda hayalet kuleyi taşır
     if (ev.pointerType === 'mouse' && ev.target === canvas && state.ui.buildType) emitAt(EV.DRAG, ev.clientX, ev.clientY);
@@ -130,13 +170,27 @@ function overCanvas(x, y) {
  * KLAVYE VE GERİ TUŞU
  * ------------------------------------------------------------------------ */
 function onKey(ev) {
-  if (ev.repeat) return;
+  if (ev.key === 'Tab') tabbing = true;
+  if (ev.repeat || ev.ctrlKey || ev.metaKey || ev.altKey) return; // Ctrl+F gibi tarayıcı kısayolları serbest
   const typing = ev.target && (ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA');
   if (typing) return;
   if (ev.key === 'Escape' || ev.key === 'Backspace' || ev.key === 'p' || ev.key === 'P') {
     ev.preventDefault();
     emit(EV.BACK);
+    return;
   }
+  if (state.scene !== 'game') return;
+  const key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+  const hot = HOTKEYS[key];
+  if (!hot) return;
+  // Tab ile bir düğmeye gelen, Boşlukla o düğmeye basabilsin
+  const focused = document.activeElement;
+  const onControl = focused && focused !== document.body && focused !== document.documentElement;
+  if (key === ' ' && tabbing && onControl) return;
+  ev.preventDefault();
+  // fareyle tıklanmış bir düğme odakta kalırsa Boşluk onu da basmasın
+  if (onControl && typeof focused.blur === 'function') focused.blur();
+  emit(EV.HOTKEY, hot[0], hot[1]);
 }
 
 function onPop() {

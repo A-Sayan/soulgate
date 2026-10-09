@@ -27,7 +27,7 @@ import { CHAPTER_DEFS } from './content/chapters.js';
 export const GAME = {
   title: 'Soulgate',
   fullTitle: 'Soulgate: Tower Defense',
-  version: '1.1.0',
+  version: '1.2.0',
   year: 2026,                 // ilk yayın yılı
   studio: 'Sayk Studio',      // yayıncı; telif satırında görünür
   owner: 'A. Sayan',          // telif sahibi

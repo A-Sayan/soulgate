@@ -101,6 +101,10 @@ export const EV = Object.freeze({
   DRAG: 'input:drag',             // (sütun, satır, x, y) — input → ui
   DRAG_END: 'input:dragEnd',      // (sütun, satır, x, y) — input → ui
   BACK: 'input:back',             // () — input/main → menu (Android geri tuşu, Esc)
+  CANCEL: 'input:cancel',         // () — input → ui (farenin sağ tuşu: kurulumu, hedeflemeyi ya da paneli kapat; asla duraklatmaz)
+  HOTKEY: 'input:hotkey',         // (eylem, ek) — input → ui (yalnızca oyun sahnesinde). eylem:
+                                  //   'tower' (ek: bardaki sıra 0–5) | 'wave' | 'speed' |
+                                  //   'skill' (ek: 'left'|'right') | 'upgrade' | 'sell'
 
   /* — Arayüz — */
   TOAST: 'ui:toast',              // (metin, ton: 'info'|'warn'|'good') — herkes → ui

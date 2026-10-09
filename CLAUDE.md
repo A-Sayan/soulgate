@@ -6,12 +6,13 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
 ## 1. Kim, ne, nasıl konuşulur
 
 - **Oyun:** Soulgate: Tower Defense. Karanlık fantastik, dikey (portrait), mobil öncelikli kule savunma.
+  1.2.0'dan beri bilgisayarda da oynanır (her pencere boyutu, fare + klavye; bkz. bölüm 5 "Sahne ve bilgisayar").
 - **Künye:** Yayıncı Sayk Studio · Geliştirici A. Sayan · Yardımcı geliştirici S. Soytürk.
 - **Kullanıcı kodcu değil.** Her zaman Türkçe, sade dille konuş. Teknik terim yerine ne değiştiğini ve
   oyuncunun ne göreceğini anlat. Kodu kendisi telefonda Spck Editor ile açar ve önizler.
 - **Teslim alışkanlığı:** iş bitince kısa Türkçe özet, değişen dosyaların listesi, gerekiyorsa
   dosyalar (APK, zip) sohbete gönderilir. Uzun teknik anlatı yok.
-- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.1.0**). APK sürümü de buradan okunur.
+- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.2.0**). APK sürümü de buradan okunur.
 
 ## 2. Yayın kanalları (hepsi canlı)
 
@@ -19,7 +20,7 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
 |---|---|---|
 | GitHub deposu | `A-Sayan/soulgate` (public), dal `main` | push |
 | Tarayıcı sürümü | https://a-sayan.github.io/soulgate/ | `main`'e push → `.github/workflows/pages.yml` kendiliğinden yayımlar |
-| APK + web paketi | GitHub Releases (`v1.1.0` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
+| APK + web paketi | GitHub Releases (`v1.2.0` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
 | itch.io | Kullanıcının sayfası (kuruldu) | Kullanıcı elle yükler: Release'teki `Soulgate-x.y.z-web.zip` + `Soulgate-x.y.z.apk` |
 
 **Erişim:** Claude oturumları kullanıcının `m-Salih38` GitHub bağlantısıyla çalışır. `m-Salih38`, `A-Sayan/soulgate`
@@ -61,6 +62,8 @@ güncellenemez ve oyuncunun ilerlemesi silinir.
   Yazı tipleri `fonts/` içinde (Cinzel değişken + Inter 400/500/600/700, WOFF, OFL). Google Fonts kullanılmaz.
 - **Döngüsel import yok.** Katman sırası aşağıda; yukarı ya da aynı katmana haber `events.js` ile gider.
 - Mobil öncelikli, 60 FPS hedefi, bol "juice" (sarsıntı, parçacık, hit-pause, sayılar).
+- Telefonda (dik ekran) görünüm değişmez: geniş ekran kuralları yalnızca `min-aspect-ratio: 7/10`, fare kuralları
+  yalnızca `(hover: hover) and (pointer: fine)` altında. Arayüzde genişlik için `vw` değil `var(--stage-w)` kullan.
 - Ses tamamen sentez (Web Audio), ses dosyası yok. Her bölümün kendi müziği (`audio.js` → `setTune`).
 - Onay için yalnızca özel pencere (`modal.js`). `alert/confirm/prompt` yok.
 - Ayarlar ve kayıtlar anında uygulanır/yazılır.
@@ -107,6 +110,25 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
 | `sw.js` | Çevrimdışı önbellek (önce ağ). Yerel önizlemede kurulmaz |
 | `android/` | WebView kabuğu (bölüm 7) |
 
+**Sahne ve bilgisayar (1.2.0)**
+
+- `style.css` `:root` → `--stage-w`: telefonda `100vw`; geniş ekranda (en/boy ≥ 0.7) ekran yüksekliğinden hesaplanan
+  ortadaki dikey sütun (en az 390px, en çok 760px). `--side` = iki yandaki boşluk. Tuval (`#game`) hep tam ekrandır
+  (iki yanda bölümün havası akar); `.ui` sahnenin içindedir; `.screen-sheet` içeriği sahne genişliğinde, yanlar koyu
+  ve ince yaldız çizgili. Alçak + geniş ekranda (yükseklik ≤ 700px) ana menü yan yana dizilir (logo solda, düğmeler sağda).
+- `ui.measure()` HUD'un sol/sağ kenarını `state.view.inset.left/right`'a yazar; `render.resize()` haritayı o genişliğe sığdırır.
+  Yetenek küreleri `uiLeft` kadar kaydırılır (arayüz koordinatı ≠ tuval koordinatı).
+- "Dik tut" uyarısı (index.html) yalnızca dokunmatik telefonda yatayda (`hover: none` + `pointer: coarse`).
+- Girdi (`input.js`): farenin sağ tuşu oyun alanında `EV.CANCEL` (kurulum / nişan / panel kapanır, asla duraklatmaz);
+  oyun sahnesinde kısayollar `EV.HOTKEY (eylem, ek)`: 1–6 bardaki kule, Boşluk dalga, F hız, Q / E sol / sağ yetenek,
+  U yükselt (ustalıkta yok), X / Delete sat (iki basış). Esc / P / Backspace = BACK (değişmedi). Ctrl/Alt/Meta'lı tuşlar
+  tarayıcıya bırakılır; Tab ile odağa gelen düğmede Boşluk tarayıcının olur, fareyle tıklanan düğme Boşlukta odaktan çıkar.
+  `hoverCell()` farenin altındaki hücre (klavyeyle seçilen kulenin hayaleti orada belirir).
+- `ui.js` bölüm 10: kısayol eylemleri ekrandaki düğmeye basar (`pressFx` → `.key-press`). Bardaki kuleye sağ tık = basılı
+  tutmak (bilgi ekranı). Fareyle oynanırken ipuçları "tıkla" der (`ui.clickToPlace`, `clickAgain`, `aimClick`, `discover.openClick`).
+- Kısayol rozetleri: düğmelerde `data-hotkey` → CSS `::after` (yalnızca fareyle). `data-key` KULLANMA: ayarlarda başka işi var.
+  Ayarlarda "Klavye ve Fare" listesi (`menu.js keysGroup`, metinler `settings.keys.*`) yalnızca bilgisayarda görünür.
+
 **Önemli mekanikler**
 
 - Döngü sabit adım `1/60`; hız `[1, 2, 3, 0]` adım sayısını çarpar.
@@ -123,7 +145,7 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
   Çarşı ürünleri bölümün `unlocks` listesiyle açılır. Rekorlar bölüm × zorluk bazında; eski biçimden geçiş var.
 - Savaştan önce en çok 6 kule seçilir (`LOADOUT_SIZE`).
 
-## 6. İçerik (1.1.0)
+## 6. İçerik (1.2.0)
 
 **Bölümler** (her biri 30 dalga; 10/20/30 patron):
 1. `kul-vadisi` Kül Vadisi (tek yol). 2. `ayaz-gecidi` Ayaz Geçidi (açar: lance, prism, thunder, timestop).
@@ -164,7 +186,8 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
 ## 8. Test (teslimden önce)
 
 - `for f in js/*.js js/*/*.js; do node --check $f; done`, döngüsel import taraması, iki dilin anahtar eşitliği.
-- Tarayıcı testleri: depo kökünde `python3 -m http.server 8765 --bind 127.0.0.1`, sonra `python3 dev/e2e.py all`.
+- Tarayıcı testleri: depo kökünde `python3 -m http.server 8765 --bind 127.0.0.1`, sonra `python3 dev/e2e.py all`
+  (telefon) ve `python3 dev/desktop.py` (bilgisayar: 8 pencere boyutu, fare + klavye; "SONUÇ: BAŞARILI" yazmalı).
   Konsolda hata olmamalı. Ekran görüntülerine bakarak kontrol et.
 - Denge: `node dev/balance.mjs all easy,normal,hard full,mid` (iki kez çalıştır, sonuçlar rastgelelik içerir).
   Ayrıntılar `dev/README.md`.
@@ -175,5 +198,8 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
 
 ## 9. Açık konular
 
-- 1.1.0 APK'sının kullanıcı telefonundaki denemesinin sonucu bekleniyor.
+- 1.1.0 / 1.2.0 APK'sının kullanıcı telefonundaki denemesinin sonucu bekleniyor.
+- itch.io gömülü pencere boyutu kullanıcıda; oyun her boyutta açılır, dikey (ör. 540×960) ya da tam ekran düğmesi en iyisi.
+- Lisans ekranındaki bir madde (`strings.about.terms`, iki dilde) yazı tiplerinin "Google Fonts'tan yüklendiğini" söylüyor;
+  oysa oyunla birlikte geliyorlar. Kullanıcıya söylendi, onayı olmadan değiştirilmedi.
 - Sandbox'tan `a-sayan.github.io` açılamaz. Pages'in sağlığı Actions/deployments durumundan okunur.

@@ -78,7 +78,8 @@
       font: 600 16px/1.5 system-ui, sans-serif;
       text-align: center;
     }
-    @media (orientation: landscape) and (max-height: 520px) {
+    /* yalnızca dokunmatik telefonda: bilgisayarda her pencere boyutunda oyun açılır */
+    @media (orientation: landscape) and (max-height: 520px) and (hover: none) and (pointer: coarse) {
       .rotate-hint {
         display: flex;
       }

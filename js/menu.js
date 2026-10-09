@@ -64,6 +64,7 @@ import { confirm, isOpen as modalOpen } from './modal.js';
 const TXT = section('menu');
 const M = section('market');
 const RESET = section('settings.reset');
+const KEYS = section('settings.keys');
 
 const COPYRIGHT = `© ${GAME.year} ${GAME.studio}`;
 
@@ -1111,6 +1112,20 @@ function settingRow(s) {
   ).join('')}</div></div>`;
 }
 
+/**
+ * Bilgisayar: kısayol tuşları listesi. Yalnızca fare ve klavyeyle oynanırken
+ * görünür (style.css); telefonda gizli kalır.
+ */
+function keysGroup() {
+  const rows = [
+    ['1–6', KEYS.tower], [KEYS.space, KEYS.wave], ['F', KEYS.speed], ['Q · E', KEYS.skills],
+    ['U', KEYS.upgrade], ['X', KEYS.sell], ['Esc · P', KEYS.pause],
+    [KEYS.rightClick, KEYS.cancel], [KEYS.rightClick, KEYS.info],
+  ];
+  return `<section class="set-group keys-group" data-group="keys" aria-labelledby="set-keys"><h3 class="set-head" id="set-keys">${KEYS.title}</h3>
+    <dl class="key-list">${rows.map(([k, t]) => `<div class="key-row"><dt><kbd>${k}</kbd></dt><dd>${t}</dd></div>`).join('')}</dl></section>`;
+}
+
 /** Veriler grubu: iki tehlikeli eylem, açıklamalarıyla. */
 function dataRows() {
   return `<button type="button" class="set-row set-danger" data-act="resetProgress"><span><b>${RESET.progress}</b><small>${RESET.progressDesc}</small></span></button>
@@ -1126,6 +1141,8 @@ function buildSettings() {
     const note = gr.note ? `<p class="set-note">${gr.noteText}</p>` : '';
     return `<section class="set-group" data-group="${gr.id}" aria-labelledby="set-${gr.id}"><h3 class="set-head" id="set-${gr.id}">${gr.label}</h3>${rows.join('')}${note}</section>`;
   });
+  const dataAt = SETTINGS_GROUPS.findIndex((gr) => gr.id === 'data');
+  groups.splice(dataAt < 0 ? groups.length : dataAt, 0, keysGroup());
   list.innerHTML = groups.join('')
     + `<button type="button" class="set-row set-link" data-act="about"><span>${STRINGS.about.title}</span> <span class="set-value">${COPYRIGHT}</span></button>`;
 

@@ -1,27 +1,27 @@
-## Soulgate: Tower Defense 1.1.0
+## Soulgate: Tower Defense 1.2.0
 
 **Türkçe**
 
-- 5 bölüm (4 yeni): Kül Vadisi, Ayaz Geçidi, Kara Bataklık, Kor Ocakları, Boşluk Tahtı. Her biri 30 dalga, kendi haritası, müziği ve havasıyla.
-- 12 kule, savaştan önce 6'sını seç. 9 beceri, 39 düşman (11 boss), 5 kale geliştirmesi.
-- Bölümler sırayla açılır; her zorluk bir yıldız (toplam 15).
-- Yazı tipleri oyunla birlikte geliyor: internet olmadan da aynı görünür.
+- Artık bilgisayarda da oynanır: oyun her ekran ve pencere boyutunda açılır. Geniş ekranda oyun ortada durur, iki yanda bölümün havası akar; alçak pencerede (dizüstü, itch.io) ana menü yan yana dizilir.
+- Fare: sağ tık kurulumdan, yetenek hedeflemesinden ya da panelden vazgeçer; bardaki kuleye sağ tık bilgisini açar. Kule seçiliyken hayalet kule fareyi izler, tek tıkla kurulur.
+- Klavye: 1–6 kule seç, Boşluk dalga, F hız, Q / E yetenekler, U yükselt, X sat, Esc / P duraklat. Bilgisayarda düğmelerin köşesinde tuş etiketleri görünür; tam liste Ayarlar'da.
+- Telefonda görünüm ve oynanış aynı kaldı.
 
 **Dosyalar**
 
-- `Soulgate-1.1.0.apk`: Android telefona kurulur (Android 7 ve üstü).
-- `Soulgate-1.1.0-web.zip`: tarayıcı sürümü (itch.io'ya bu yüklenir).
+- `Soulgate-1.2.0.apk`: Android telefona kurulur (Android 7 ve üstü). Eskisinin üstüne kurulur, ilerleme korunur.
+- `Soulgate-1.2.0-web.zip`: tarayıcı sürümü (itch.io'ya bu yüklenir).
 
 ---
 
 **English**
 
-- 5 chapters (4 new), each with 30 waves, its own map, music and atmosphere.
-- 12 towers (pick 6 before battle), 9 skills, 39 enemies (11 bosses), 5 castle upgrades.
-- Chapters unlock in order; every difficulty won is a star (15 in total).
-- Fonts are bundled: the game looks the same offline.
+- Now playable on computers: the game opens at any screen or window size. On wide screens it sits in the middle with the chapter's atmosphere drifting on both sides; in short windows (laptops, itch.io) the main menu is laid out side by side.
+- Mouse: right-click cancels placing, skill aiming or the panel; right-click a tower on the bar for its details. The ghost tower follows the mouse and builds with a single click.
+- Keyboard: 1–6 pick a tower, Space wave, F speed, Q / E skills, U upgrade, X sell, Esc / P pause. Key labels show on the buttons on computers; the full list is in Settings.
+- Nothing changed on phones.
 
 **Files**
 
-- `Soulgate-1.1.0.apk`: install on an Android phone (Android 7+).
-- `Soulgate-1.1.0-web.zip`: browser build (for itch.io).
+- `Soulgate-1.2.0.apk`: install on an Android phone (Android 7+). Installs over the old version; progress is kept.
+- `Soulgate-1.2.0-web.zip`: browser build (for itch.io).

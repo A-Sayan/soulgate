@@ -44,6 +44,28 @@
   --ms: 220ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* SAHNE: oyunun arayüzü bu genişlikte, ekranın ortasında durur.
+     Telefonda ekranın tamamıdır; geniş ekranda (bilgisayar, yatay tablet)
+     aşağıdaki kural onu haritanın boyuna göre daraltır. --side, sahnenin
+     iki yanında kalan boşluktur (telefonda 0). */
+  --stage-w: 100vw;
+  --side: calc((100vw - var(--stage-w)) / 2);
+}
+
+/* Geniş ekran: sahne ekran yüksekliğinden hesaplanır. Harita 9 × 16 hücre
+   (≈ 0.54 en/boy) + üstteki bilgi şeridi ve alttaki kule barı (≈ 150px) sığsın,
+   haritanın iki yanında az bir pay kalsın. Kule barı en az 390px ister. */
+@media (min-aspect-ratio: 7/10) {
+  :root {
+    --stage-w: min(100vw, clamp(390px, calc((100vh - 150px) * 0.56 + 36px), 760px));
+  }
+
+  @supports (height: 100dvh) {
+    :root {
+      --stage-w: min(100vw, clamp(390px, calc((100dvh - 150px) * 0.56 + 36px), 760px));
+    }
+  }
 }
 
 * {
@@ -67,6 +89,8 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Tuval her zaman bütün ekranı kaplar: geniş ekranda sahnenin iki yanında da
+   bölümün havası (kor, kar, zerre) ve karanlığı görünür. */
 #game {
   position: fixed;
   inset: 0;
@@ -211,7 +235,9 @@ svg.ico-coin .i-hi {
  * ------------------------------------------------------------------------ */
 .ui {
   position: fixed;
-  inset: 0;
+  /* sahnenin içinde: geniş ekranda iki yanda boşluk kalır (render.js haritayı
+     HUD'un genişliğine sığdırır; ui.js ölçüp state.view.inset'e yazar) */
+  inset: 0 var(--side);
   z-index: 10;
   pointer-events: none;
 }
@@ -333,7 +359,7 @@ svg.ico-coin .i-hi {
 }
 
 .wave-sub {
-  max-width: 48vw;
+  max-width: calc(var(--stage-w) * 0.48);
   margin-top: 3px;
   font-size: 11px;
   font-weight: 600;
@@ -504,7 +530,7 @@ svg.ico-coin .i-hi {
   margin: 2px 0 4px;
   font-family: var(--serif);
   font-weight: 900;
-  font-size: clamp(46px, 17vw, 76px);
+  font-size: clamp(46px, calc(var(--stage-w) * 0.17), 76px);
   line-height: 1;
   background: linear-gradient(180deg, #fff6d8 0%, var(--gold) 46%, #9a6a1c 100%);
   -webkit-background-clip: text;
@@ -525,7 +551,7 @@ svg.ico-coin .i-hi {
 }
 
 .banner.small .banner-title {
-  font-size: clamp(24px, 7.5vw, 32px);
+  font-size: clamp(24px, calc(var(--stage-w) * 0.075), 32px);
   margin: 4px 0 6px;
 }
 
@@ -534,7 +560,7 @@ svg.ico-coin .i-hi {
 }
 
 .banner.boss .banner-title {
-  font-size: clamp(34px, 11vw, 52px);
+  font-size: clamp(34px, calc(var(--stage-w) * 0.11), 52px);
   background: linear-gradient(180deg, #ffe0e4 0%, #ff3b4e 50%, #6d0819 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -1302,7 +1328,7 @@ svg.ico-coin .i-hi {
 .title-block::before {
   content: '';
   position: absolute;
-  inset: 4vh -18vw -5vh;
+  inset: 4vh calc(var(--stage-w) * -0.18) -5vh;
   z-index: -1;
   background: radial-gradient(closest-side, rgba(5, 4, 7, 0.9), rgba(5, 4, 7, 0.62) 60%, rgba(5, 4, 7, 0));
 }
@@ -1315,7 +1341,7 @@ svg.ico-coin .i-hi {
 
 .logo img {
   display: block;
-  width: min(82vw, 340px, 48vh);
+  width: min(calc(var(--stage-w) * 0.82), 340px, 48vh);
   height: auto;
   margin: 0 auto;
   -webkit-user-drag: none;
@@ -1481,7 +1507,10 @@ svg.ico-coin .i-hi {
 
 /* — Sayfa ekranları: zorluk, ayarlar, rehber — */
 .screen-sheet {
-  padding: calc(var(--safe-t) + 10px) max(16px, var(--safe-r)) calc(var(--safe-b) + 16px) max(16px, var(--safe-l));
+  /* içerik sahnenin genişliğinde kalır; geniş ekranda iki yan boş, karanlık */
+  padding:
+    calc(var(--safe-t) + 10px) max(16px, var(--safe-r), calc(var(--side) + 16px))
+    calc(var(--safe-b) + 16px) max(16px, var(--safe-l), calc(var(--side) + 16px));
   gap: 14px;
   background: linear-gradient(180deg, rgba(10, 8, 14, 0.97), rgba(7, 5, 10, 0.98));
 }
@@ -1661,7 +1690,7 @@ svg.ico-coin .i-hi {
 }
 
 .about-mark img {
-  width: min(62vw, 230px);
+  width: min(calc(var(--stage-w) * 0.62), 230px);
   height: auto;
   margin-bottom: 2px;
 }
@@ -2089,7 +2118,7 @@ input[type='range']::-moz-range-thumb {
   margin: 8px 0 6px;
   font-family: var(--serif);
   font-weight: 900;
-  font-size: clamp(36px, 12vw, 48px);
+  font-size: clamp(36px, calc(var(--stage-w) * 0.12), 48px);
   line-height: 1;
   background: linear-gradient(180deg, #fff6d8, var(--gold) 50%, #8a5a14);
   -webkit-background-clip: text;
@@ -2329,7 +2358,7 @@ input[type='range']::-moz-range-thumb {
 .main-gold {
   position: absolute;
   top: calc(var(--safe-t) + 12px);
-  right: max(14px, var(--safe-r));
+  right: max(14px, var(--safe-r), calc(var(--side) + 14px));
   z-index: 2;
 }
 
@@ -2816,7 +2845,7 @@ input[type='range']::-moz-range-thumb {
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  width: min(62vw, 236px);
+  width: min(calc(var(--stage-w) * 0.62), 236px);
   pointer-events: none;
 }
 
@@ -4043,4 +4072,221 @@ i.star {
 
 @keyframes unlockIn {
   from { opacity: 0; transform: scale(0.85); }
+}
+
+/* --------------------------------------------------------------------------
+ * 14. GENİŞ EKRAN VE BİLGİSAYAR
+ *  Sahne (bkz. :root --stage-w) geniş ekranda ortada dikey bir sütundur.
+ *  Burada: sahnenin çerçevesi, alçak ekranda yatay ana menü, fareyle
+ *  üzerine gelme, klavyeyle basılan düğmenin göçmesi, kısayol rozetleri
+ *  ve ayarlardaki kısayol listesi. Telefonda (dik ekran, dokunmatik)
+ *  bu bölümün hiçbir kuralı devreye girmez; yalnızca .key-press,
+ *  kısayol tuşuna basılınca eklenen bir sınıftır.
+ * ------------------------------------------------------------------------ */
+
+/* — Sahne çerçevesi: sayfa ekranlarında iki yan daha koyu, kenarda ince yaldız çizgi — */
+@media (min-aspect-ratio: 7/10) {
+  .screen-sheet {
+    background:
+      linear-gradient(90deg,
+        rgba(0, 0, 0, 0.4) var(--side), transparent var(--side),
+        transparent calc(100% - var(--side)), rgba(0, 0, 0, 0.4) calc(100% - var(--side))),
+      linear-gradient(90deg,
+        transparent calc(var(--side) - 1px), var(--line) calc(var(--side) - 1px),
+        var(--line) var(--side), transparent var(--side),
+        transparent calc(100% - var(--side)), var(--line) calc(100% - var(--side)),
+        var(--line) calc(100% - var(--side) + 1px), transparent calc(100% - var(--side) + 1px)),
+      linear-gradient(180deg, rgba(10, 8, 14, 0.97), rgba(7, 5, 10, 0.98));
+  }
+}
+
+/* — Alçak ve geniş ekran (dizüstü tarayıcısı, itch.io penceresi): ana menü yan yana —
+   Logo solda, düğmeler sağda; ikisi de dikeyde ortalanır, sığmazsa kaydırılır. */
+@media (min-aspect-ratio: 7/10) and (max-height: 700px) {
+  .screen-main {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: clamp(16px, 6vw, 80px);
+    padding: calc(var(--safe-t) + 12px) max(16px, var(--safe-r)) calc(var(--safe-b) + 12px) max(16px, var(--safe-l));
+    overflow-y: auto;
+  }
+
+  .screen-main > .title-block,
+  .screen-main > .main-bottom {
+    flex: none;
+    margin-block: auto; /* sığarsa ortada, sığmazsa üstten başlar (kesilmez) */
+  }
+
+  .title-block {
+    padding: 0;
+  }
+
+  .title-block::before {
+    inset: -8vh -10vw;
+  }
+
+  .logo img {
+    width: min(40vw, 340px, 56vh);
+  }
+
+  .main-bottom {
+    width: min(360px, 48vw);
+    padding: 18px;
+    border-radius: 24px;
+    background: radial-gradient(closest-side, rgba(5, 4, 7, 0.9), rgba(5, 4, 7, 0.7) 70%, rgba(5, 4, 7, 0));
+  }
+
+  .main-gold {
+    right: max(14px, var(--safe-r));
+  }
+}
+
+@media (min-aspect-ratio: 7/10) and (max-height: 480px) {
+  .menu-actions .menu-btn {
+    min-height: 44px;
+  }
+
+  .menu-actions .menu-btn.small {
+    min-height: 40px;
+  }
+
+  .tagline {
+    margin-top: 6px;
+  }
+}
+
+/* — Fareyle üzerine gelince düğmeler hafifçe aydınlanır — */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover {
+    filter: brightness(1.13);
+  }
+
+  /* kendi filtresi olanlar karartmasını korur */
+  .mastery-card.poor:hover {
+    filter: grayscale(0.75) brightness(0.8);
+  }
+
+  .skill-orb.cooling:hover {
+    filter: saturate(0.4) brightness(0.9);
+  }
+}
+
+/* — Kısayol tuşuyla basılan düğme, dokunulmuş gibi kısa bir an içe göçer (ui.js) — */
+.tower-btn.key-press {
+  transform: scale(0.95);
+}
+
+.hud-btn.key-press {
+  transform: translateY(1px) scale(0.96);
+}
+
+.btn.key-press {
+  transform: translateY(1px) scale(0.985);
+}
+
+.wave-btn.key-press:not(:disabled) .wave-dial {
+  transform: scale(0.94);
+}
+
+.skill-orb.key-press {
+  filter: brightness(1.3);
+}
+
+/* — Kısayol rozetleri: yalnızca fare ve klavyeyle (bilgisayarda) görünür — */
+@media (hover: hover) and (pointer: fine) {
+  [data-hotkey]::after {
+    content: attr(data-hotkey);
+    position: absolute; /* z-index yok: kule paneli açılınca rozetler onun altında kalır */
+    min-width: 15px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(8, 6, 11, 0.88);
+    color: var(--text-dim);
+    font: 700 9.5px/1.25 var(--sans);
+    letter-spacing: 0.02em;
+    text-align: center;
+    text-transform: none;
+    pointer-events: none;
+  }
+
+  .hud-btn[data-hotkey],
+  .wave-btn[data-hotkey],
+  .btn[data-hotkey] {
+    position: relative;
+  }
+
+  .tower-btn[data-hotkey]::after {
+    top: 3px;
+    left: 3px;
+  }
+
+  .hud-btn[data-hotkey]::after {
+    right: -5px;
+    bottom: -6px;
+  }
+
+  .wave-btn[data-hotkey]::after {
+    top: 4px; /* OTO düğmesinin altında, mangalın sol omzunda */
+    left: -8px;
+  }
+
+  .skill-orb[data-hotkey]::after {
+    top: -5px;
+    left: -5px;
+  }
+
+  .btn[data-hotkey]::after {
+    top: -7px;
+    right: 8px;
+  }
+}
+
+/* — Ayarlar: klavye ve fare kısayolları (yalnızca bilgisayarda) — */
+.keys-group {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .keys-group {
+    display: block;
+  }
+}
+
+.key-list {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 0;
+}
+
+.key-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.key-row dt,
+.key-row dd {
+  margin: 0;
+}
+
+.key-row dd {
+  font-size: 13px;
+  color: var(--bone);
+}
+
+.key-row kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom-width: 2px;
+  background: var(--iron-2);
+  color: var(--gold-hi);
+  font: 700 11.5px/1.3 var(--sans);
+  white-space: nowrap;
 }
