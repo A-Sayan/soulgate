@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#15121b">
+<canvas id="c"></canvas>
+<script type="module">
+import * as S from '../js/sprites.js';
+import { ENEMIES } from '../js/config.js';
+const px = 90; S.setScale(px);
+const list = (new URLSearchParams(location.search).get('e') || Object.keys(ENEMIES).join(',')).split(',');
+const cols = 6, cw = px * 2.2, ch = px * 2.0;
+const c = document.getElementById('c'); c.width = cols * cw; c.height = Math.ceil(list.length * 2 / cols) * ch;
+const g = c.getContext('2d');
+g.fillStyle = '#1a1620'; g.fillRect(0, 0, c.width, c.height);
+let i = 0;
+for (const type of list) {
+  const sp = S.enemySprite(type);
+  for (let f = 0; f < 2; f++, i++) {
+    const col = i % cols, row = Math.floor(i / cols);
+    const ax = col * cw + cw / 2, ay = row * ch + ch * 0.85;
+    const lift = sp.fly * px;
+    g.drawImage(S.shadowSprite(), ax - sp.shadowR * px, ay - sp.shadowR * px * 0.38, sp.shadowR * px * 2, sp.shadowR * px * 0.76);
+    const fr = sp.frames[f];
+    g.drawImage(fr.c, ax - fr.ox * px, ay - lift - fr.oy * px);
+    g.globalCompositeOperation = 'lighter';
+    if (sp.aura) { const r = sp.aura.r * px; g.globalAlpha = 0.3; g.drawImage(S.glowSprite(sp.aura.color), ax - r, ay - lift - sp.height*px*0.45 - r, r*2, r*2); g.globalAlpha = 1; }
+    for (const l of sp.lights) { const r = l.r * px; g.globalAlpha = 0.55; g.drawImage(S.glowSprite(l.color), ax + l.x*px - r, ay - lift + l.y*px - r, r*2, r*2); g.globalAlpha = 1; }
+    for (const [ex, ey] of sp.eyes) { const r = sp.eyeR * px * 3; g.drawImage(S.glowSprite(sp.eyeColor), ax + ex*px - r, ay - lift + ey*px - r, r*2, r*2); }
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = '#aaa'; g.font = '12px sans-serif'; g.fillText(`${type} ${f}`, col*cw + 4, row*ch + 14);
+  }
+}
+document.title = 'done';
+</script>

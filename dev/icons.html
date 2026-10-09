@@ -1,0 +1,8 @@
+<!doctype html><html><head><link rel="stylesheet" href="../style.css"><style>body{overflow:auto;background:#111;padding:20px;display:flex;flex-wrap:wrap;gap:14px} .cell{display:flex;flex-direction:column;align-items:center;gap:6px;color:#ccc;font:12px sans-serif} .shop-icon{display:grid;place-items:center}</style></head><body>
+<script type="module">
+import { ICON } from '../js/icons.js';
+for (const k of ['log','meteor','frost','thunder','timestop','plague','mend','vortex','reaper','walls','ballista','treasury','watch','runes','keep','lock']) {
+  document.body.insertAdjacentHTML('beforeend', `<div class="cell"><span class="shop-icon skill-icon" style="--tower:#e8b84a;color:#e8b84a">${ICON[k]}</span><span class="keep-up-icon">${ICON[k]}</span><span class="orb-demo" style="width:40px;height:40px;color:#9cf">${ICON[k]}</span>${k}</div>`);
+}
+document.title='done';
+</script></body></html>

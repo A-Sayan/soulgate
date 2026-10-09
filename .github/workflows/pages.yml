@@ -9,7 +9,9 @@ on:
       - 'android/**'
       - 'media/**'
       - 'tools/**'
+      - 'dev/**'
       - 'README.md'
+      - 'CLAUDE.md'
       - '.github/release-notes.md'
   workflow_dispatch:
 

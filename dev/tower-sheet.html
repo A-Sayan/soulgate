@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#15121b">
+<canvas id="c"></canvas>
+<script type="module">
+import * as S from '../js/sprites.js';
+import { TOWERS, TOWER_ORDER } from '../js/config.js';
+const px = 72; S.setScale(px);
+const types = (new URLSearchParams(location.search).get('t') || TOWER_ORDER.join(',')).split(',');
+const cols = 5, cw = px * 1.5, ch = px * 2.4;
+const c = document.getElementById('c'); c.width = cols * cw; c.height = types.length * ch;
+const g = c.getContext('2d');
+g.fillStyle = '#1a1620'; g.fillRect(0, 0, c.width, c.height);
+types.forEach((type, row) => {
+  const def = TOWERS[type]; const last = def.levels.length - 1;
+  const vars = [[0,-1],[1,-1],[2,-1],[last,0],[last,1]];
+  vars.forEach(([lv, m], col) => {
+    const sp = S.towerSprite(type, lv, m);
+    const ax = col * cw + cw / 2, ay = row * ch + ch * 0.82;
+    g.strokeStyle = 'rgba(255,255,255,0.06)'; g.strokeRect(col*cw, row*ch, cw, ch);
+    const draw = (surf, x, y, rot=0) => { g.save(); g.translate(x, y); g.rotate(rot); g.drawImage(surf.c, -surf.ox*px, -surf.oy*px); g.restore(); };
+    draw(sp.base, ax, ay);
+    if (sp.head) draw(sp.head, ax, ay + sp.headY * px, sp.aim ? -0.6 : (sp.swing ? 0.15 : 0));
+    g.globalCompositeOperation = 'lighter';
+    for (const l of sp.lights) { const r = l.r * px; g.drawImage(S.glowSprite(l.color), ax + l.x*px - r, ay + l.y*px - r, r*2, r*2); }
+    for (const [ex, ey] of sp.eyes) { const oy = sp.eyesOnHead ? sp.headY : 0; const r = sp.eyeR * px * 2.6; g.drawImage(S.glowSprite(sp.eyeColor), ax + ex*px - r, ay + (ey+oy)*px - r, r*2, r*2); }
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = '#aaa'; g.font = '11px sans-serif'; g.fillText(`${type} ${lv}/${m}`, col*cw + 4, row*ch + 12);
+  });
+});
+document.title = 'done';
+</script>
