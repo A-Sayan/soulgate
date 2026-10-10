@@ -18,7 +18,7 @@
 import {
   GRID, MAPS, MAP_BY_ID, MAP_ORDER, WAVE_COUNT, DIFFICULTIES, DIFFICULTY_ORDER, DEFAULT_DIFFICULTY,
   DEFAULT_SETTINGS, SETTINGS_SCHEMA, TOWERS, TOWER_ORDER, TARGET_MODES, TIMING,
-  META, CASTLE, SKILLS, SIDES, ENEMIES, LOADOUT_SIZE,
+  META, CASTLE, SKILLS, SIDES, ENEMIES, LOADOUT_SIZE, TIPS,
 } from './config.js';
 import { buildPolyline, polylineCells, cellIndex, inBounds } from './utils.js';
 import { EV, emit } from './events.js';
@@ -511,11 +511,13 @@ function createRecords() {
     seen: [],                // karşılaşılan düşman tipleri (rehber + keşif kartı)
     seenTowers: [],          // oyunda tanıtılmış kuleler (keşif kartı bir kez çıkar)
     seenSkills: [],          // oyunda tanıtılmış yetenekler
+    tips: [],                // görülen öğretici ipuçları (tips.js; TIPS kimlikleri + 'chapter-<bölüm>')
   };
 }
 
-const SEEN_LISTS = { enemy: 'seen', tower: 'seenTowers', skill: 'seenSkills' };
-const knownId = { enemy: (id) => !!ENEMIES[id], tower: (id) => !!TOWERS[id], skill: (id) => !!SKILLS[id] };
+const SEEN_LISTS = { enemy: 'seen', tower: 'seenTowers', skill: 'seenSkills', tip: 'tips' };
+const isTipId = (id) => TIPS.order.includes(id) || (id.startsWith('chapter-') && MAP_ORDER.includes(id.slice(8)));
+const knownId = { enemy: (id) => !!ENEMIES[id], tower: (id) => !!TOWERS[id], skill: (id) => !!SKILLS[id], tip: isTipId };
 const cleanList = (list, kind) => (Array.isArray(list)
   ? [...new Set(list.filter((s) => typeof s === 'string' && knownId[kind](s)))]
   : []);
@@ -566,6 +568,11 @@ export const markSeen = (enemyType) => discover('enemy', enemyType);
 
 /** Bu kind/id daha önce tanındı mı? */
 export const isDiscovered = (kind, id) => !!SEEN_LISTS[kind] && state.records[SEEN_LISTS[kind]].includes(id);
+
+/** Öğretici ipuçlarını baştan gösterir (görülme listesini boşaltır). */
+export function resetTips() {
+  state.records.tips = [];
+}
 
 /* --------------------------------------------------------------------------
  * 10. PROFİL — kalıcı ilerleme (veri şekli ve doğrulama; kurallar meta.js'te)

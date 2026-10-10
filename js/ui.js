@@ -27,9 +27,14 @@
  *  KURULUM AKIŞI
  *   • Bardaki kuleye dokun → kurulum modu. Haritada bir hücreye dokun:
  *     hayalet kule + menzil + yol kapsamı görünür. Aynı hücreye tekrar
- *     dokun → kurulur. (İki dokunuş: küçük ekranda yanlış kurulumu önler.)
+ *     dokun → kurulur. (İki dokunuş: küçük ekranda yanlış kurulumu önler.
+ *     Farede hayalet imleci izler, tek tıklama kurar.)
  *   • Ya da kuleyi bardan haritaya sürükle-bırak (seçili olsun olmasın)
  *     → bırakınca kurulur. Bara geri bırakmak iptal eder.
+ *   • Kurduktan sonra kule ELDE KALIR (1.4.0): aynı kuleden peş peşe
+ *     kurulur. Bırakmak için: sağ tık / Esc / geri tuşu, bardaki aynı kule
+ *     (ya da aynı sayı tuşu), bir kuleye dokunmak (onu seçer) ya da kurulamayan
+ *     bir yere (yol, süs) dokunmak. Ruh yetmezse elde kalır, hayalet kızarır.
  *   • Bardaki kuleye basılı tut → kulenin bilgi ekranı açılır.
  *   • Bir kuleye dokun → panel açılır: istatistik, yükseltme, ustalık,
  *     hedefleme, satış (satış iki dokunuşla onaylanır).
@@ -58,6 +63,7 @@ import { castleLevel, loadoutTowers } from './meta.js';
 import * as game from './game.js';
 import { resize as resizeRender } from './render.js';
 import { beginDrag, cancelDrag, hoverCell } from './input.js';
+import * as tips from './tips.js';
 import { section, applyText } from './i18n.js';
 import { ICON } from './icons.js';
 
@@ -83,6 +89,7 @@ const orbs = [];               // yetenek küreleri (run.skills sırasıyla)
 let countdownTotal = 0;
 let uiLeft = 0;                // arayüzün ekrandaki sol kenarı (geniş ekranda sahne ortadadır)
 let fromBar = false;           // kurulum bardan sürüklenerek mi başladı
+let chained = false;           // bu kurulum modunda en az bir kule kuruldu (kule elde kaldı)
 let pressedWasActive = false;  // bar düğmesine basıldığında o tip zaten seçili miydi
 let sellArmed = 0;             // satış onayı için kalan süre
 let panelMode = '';            // '' | 'tower' | 'keep' — panelde ne gösteriliyor
@@ -507,6 +514,7 @@ function subscribe() {
   on(EV.SETTINGS, (key) => {
     if (key === 'lang') relocalize();
     else if (key === 'autoWave') refreshAuto();
+    else if (key === 'discoveries' && !state.settings.discoveries) clearDiscoveries(); // anında kalkar
   });
 
   on(EV.TAP, onTap);
@@ -617,6 +625,7 @@ function barCheck(type) {
 
 function enterBuild(type) {
   deselect(true);
+  chained = false;
   state.ui.buildType = type;
   state.ui.ghostC = -1;
   state.ui.ghostR = -1;
@@ -624,6 +633,8 @@ function enterBuild(type) {
 }
 
 function exitBuild() {
+  if (chained) tips.complete('chain'); // kuleyi bırakmayı öğrendi
+  chained = false;
   state.ui.buildType = null;
   state.ui.ghostC = -1;
   state.ui.ghostR = -1;
@@ -652,7 +663,12 @@ function tryBuild(c, r) {
     return false;
   }
   game.build(type, c, r);
-  exitBuild();
+  // kule elde kalır: aynısından peş peşe kurulur (bkz. KURULUM AKIŞI)
+  chained = true;
+  fromBar = false;
+  state.ui.ghostC = -1;
+  state.ui.ghostR = -1;
+  tips.trigger('chain', { target: '.tower-btn.active' });
   return true;
 }
 
@@ -679,8 +695,15 @@ function onTap(c, r, x, y) {
       tryBuild(c, r);
       return;
     }
+    const reason = game.canBuild(ui.buildType, c, r).reason;
+    if (chained && reason !== 'souls' && !game.canBuild(ui.buildType, c, r).ok) {
+      // elde kule varken kurulamayan bir yere dokunmak "vazgeçtim" demektir
+      exitBuild();
+      play('ui_close');
+      return;
+    }
     setGhost(c, r);
-    if (!ui.ghostValid) deny(game.canBuild(ui.buildType, c, r).reason === 'souls' ? TXT.noSouls : TXT.badCell);
+    if (!ui.ghostValid) deny(reason === 'souls' ? TXT.noSouls : TXT.badCell);
     else if (!hinted.again) {
       hinted.again = true;
       toast(mouse() ? TXT.clickAgain : TXT.tapAgain, 'info');
@@ -855,6 +878,7 @@ function renderPanel(force = false) {
   } else if (opt.kind === 'level') {
     el.panelUpgrade.innerHTML = `<button type="button" class="btn btn-primary btn-upgrade" data-up="-1" data-hotkey="U">${STRINGS.panel.upgrade} ${ICON.soul}<b>${opt.cost}</b></button>`;
   } else {
+    tips.trigger('mastery', { target: '.panel.open .mastery', side: 'left' });
     el.panelUpgrade.innerHTML = `<div class="mastery-head">${STRINGS.panel.mastery}</div><div class="mastery">${opt.options.map(
       (o) => `<button type="button" class="mastery-card" data-up="${o.index}"><strong>${o.name}</strong><small>${o.desc}</small><b>${ICON.soul}${o.cost}</b></button>`,
     ).join('')}</div>`;
@@ -1107,8 +1131,10 @@ function introduceLoadout() {
 }
 
 function discoverCard(kind, id) {
+  if (!state.settings.discoveries) return; // ayarlardan kapatıldı (yine de "görüldü" sayılır, rehbere girer)
   discoverQueue.push({ kind, id });
   pumpDiscoveries();
+  if (kind === 'enemy') tips.trigger('discover', { target: '.discovery.disc-enemy' });
 }
 
 function pumpDiscoveries() {
@@ -1396,6 +1422,7 @@ export function handleBack() {
 
 function resetTransient() {
   clearLongPress();
+  chained = false; // sahne değişti: bu, kuleyi bırakmayı öğrenmek sayılmaz
   exitBuild();
   deselect(true);
   cancelAim();

@@ -49,7 +49,7 @@ import { EV, on, emit } from './events.js';
 import { section } from './i18n.js';
 import { ICON } from './icons.js';
 import {
-  state, setScene, setPaused, setSetting, clearRun, recordRunResult, serializeRun, applyRecords, applyProfile, createMap,
+  state, setScene, setPaused, setSetting, clearRun, recordRunResult, serializeRun, applyRecords, applyProfile, createMap, resetTips,
 } from './state.js';
 import * as save from './save.js';
 import { play } from './audio.js';
@@ -59,12 +59,15 @@ import * as meta from './meta.js';
 import * as game from './game.js';
 import { setBackTrap } from './input.js';
 import { confirm, isOpen as modalOpen } from './modal.js';
+import * as tips from './tips.js';
 
 /* Menülere özgü kısa metinler: etkin dilden canlı okunur (lang: menu.*, market.*). */
 const TXT = section('menu');
 const M = section('market');
 const RESET = section('settings.reset');
 const KEYS = section('settings.keys');
+const SET = section('settings');
+const THREAT = section('threats');
 
 const COPYRIGHT = `© ${GAME.year} ${GAME.studio}`;
 
@@ -103,7 +106,7 @@ export function init(rootEl) {
   root.classList.add('menu');
   root.addEventListener('click', onClick);
   root.addEventListener('keydown', onKeyActivate);
-  document.addEventListener('fullscreenchange', syncFullscreen);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
   build();
 
   on(EV.OPEN, (what, kind, id) => {
@@ -148,6 +151,24 @@ function toggleFullscreen() {
     p = Promise.reject();
   }
   Promise.resolve(p).catch(() => emit(EV.TOAST, TXT.fullscreenFail, 'warn'));
+}
+
+/**
+ * Tam ekrana girince Esc tuşu oyuna bırakılsın (Keyboard Lock; Chrome / Edge):
+ * Esc oyunu duraklatır, tam ekrandan çıkmak için basılı tutulur (tarayıcı bunu
+ * ekranda kendisi söyler). Desteklemeyen tarayıcıda ya da çerçeve içinde (itch.io)
+ * Esc tam ekrandan çıkar; o zaman oyun da aynı anda duraklar (aşağıda).
+ */
+function onFullscreenChange() {
+  const kb = navigator.keyboard;
+  if (isFullscreen()) {
+    if (kb && typeof kb.lock === 'function') kb.lock(['Escape']).catch(() => {});
+  } else {
+    if (kb && typeof kb.unlock === 'function') kb.unlock();
+    const run = state.run;
+    if (state.scene === 'game' && run && !run.over && !run.paused && current === null) openPause();
+  }
+  syncFullscreen();
 }
 
 /** Tam ekran düğmelerinin görünürlüğü, simgesi ve yazısı. */
@@ -216,6 +237,7 @@ function layout() {
       <footer class="credits">
         <span>${COPYRIGHT}</span>
         <button type="button" class="credits-link" data-act="about">${STRINGS.about.title}</button>
+        ${feedbackLink('credits-link')}
         <span class="credits-version">v${GAME.version}</span>
       </footer>
     </div>
@@ -337,6 +359,7 @@ function show(name) {
     s.inert = !on2;
   }
   current = name;
+  tips.menuScreen(name); // menü ipuçları kendi ekranlarında, oyun ipuçları menü kapalıyken görünür
   if (name === 'main') startTaglines();
   else stopTaglines();
   root.classList.toggle('open', !!name);
@@ -568,6 +591,13 @@ function onClick(e) {
     }
     case 'showAll': setSetting('shopHideOwned', false); break;
     case 'fullscreen': toggleFullscreen(); break;
+    case 'feedback': break; // bağlantının kendisi açılır (yeni sekme / telefonun tarayıcısı)
+    case 'resetTips':
+      resetTips();
+      save.saveRecords(state.records);
+      emit(EV.TOAST, SET.tipsResetDone, 'good');
+      if (!state.settings.tips) setSetting('tips', true);
+      break;
     case 'resetProgress': resetProgress(); break;
     case 'wipeAll': wipeAll(); break;
     default: break;
@@ -662,6 +692,7 @@ function onRunEnd(victory, stats) {
  * ------------------------------------------------------------------------ */
 function openMarket(from) {
   marketReturn = from === 'market' || !from ? marketReturn : from;
+  tips.complete('market');
   renderMarket(true);
   show('market');
   play('ui_open');
@@ -715,8 +746,10 @@ async function purchase(btn, kind, id) {
 
 function equipSkill(side, id) {
   const res = meta.equip(side, id);
-  if (res.ok) play('ui_toggle', { on: !!id });
-  else play('ui_deny');
+  if (res.ok) {
+    play('ui_toggle', { on: !!id });
+    if (id) tips.complete('equip');
+  } else play('ui_deny');
 }
 
 /** Profil değişti (alım, takma, oyun sonu): görünen her şey tazelenir. */
@@ -777,6 +810,11 @@ function renderMarket(resetScroll = false) {
     list.innerHTML = `<div class="shop-empty"><p>${M.allDone}</p><button type="button" class="menu-btn small" data-act="showAll">${M.showAll}</button></div>`;
   }
   list.scrollTop = keep;
+  // yetenek alındı ama yan kuleye takılmadı: Kale sekmesini (oradaysa takma düğmelerini) göster
+  const ownsSkill = SKILL_ORDER.some((id) => meta.skillLevel(id) > 0);
+  if (ownsSkill && SIDES.every((side) => !meta.equipped(side))) {
+    tips.trigger('equip', { screen: 'market', target: shopTab === 'castle' ? '.equip-chips' : '.shop-tabs [data-tab="castle"]' });
+  }
 }
 
 /** "Bölüm 3'te açılır" rozeti. */
@@ -911,6 +949,7 @@ function refreshMain() {
   }
   ref('storageWarn').hidden = save.isPersistent();
   refreshGold();
+  if (meta.gold() > 0 && state.records.runs > 0) tips.trigger('market', { screen: 'main', target: '.screen-main [data-act="market"]' });
   ref('ruinNote').hidden = !meta.isRuined();
   ref('ruinPrice').textContent = formatInt(meta.repairPrice());
   // bölüm ilerlemesi: her bölüm bir mühür, altında yıldızları
@@ -962,10 +1001,23 @@ function renderChapters() {
         <strong>${m.name}</strong>
         <span class="chapter-sub">${m.sub}</span>
         <span class="chapter-meta">${open ? starRow(stars.count) : `${ICON.lock}<em>${TXT.lockedShort}</em>`}<span>${line}</span>${m.paths.length > 1 ? `<span class="chapter-tag">${TXT.twoGates}</span>` : ''}</span>
+        ${threatChips(m)}
       </span>`;
     card.querySelector('.chapter-thumb').appendChild(chapterThumb(m.id));
     list.appendChild(card);
   }
+}
+
+/** Bölümün asıl tehditleri: simge + kısa ad (content/chapters.js → threats). */
+function threatChips(m) {
+  return `<span class="threats" aria-label="${TXT.threat}">${m.threats.map(
+    (id) => `<span class="threat threat-${id}">${ICON[`t_${id}`]}${THREAT[id]}</span>`,
+  ).join('')}</span>`;
+}
+
+/** Geri bildirim bağlantısı: yeni sekmede (Android'de telefonun tarayıcısında) açılır. */
+function feedbackLink(cls) {
+  return `<a class="${cls}" href="${GAME.feedbackUrl}" target="_blank" rel="noopener" data-act="feedback">${TXT.feedback}</a>`;
 }
 
 /** Bölümün küçük harita resmi (bir kez çizilir, önbellekte durur). */
@@ -1000,6 +1052,7 @@ function renderDifficulties() {
   const m = MAP_BY_ID[chosenMap];
   ref('diffTitle').textContent = m.name;
   ref('diffChapter').innerHTML = `<small>${template(TXT.chapter, { n: m.index + 1 })}</small><p>${m.desc}</p>
+    <div class="diff-threat"><b>${TXT.threat}</b>${threatChips(m)}<p>${m.threat}</p></div>
     <span class="diff-facts"><span class="reward">${template(TXT.chapterReward, { m: formatValue(m.reward, 'dec1') })}</span>${m.paths.length > 1 ? `<span>${TXT.twoGates}</span>` : ''}</span>`;
   ref('diffChapter').style.setProperty('--accent', m.theme.accent);
   ref('diffList').innerHTML = DIFFICULTY_ORDER.map((id) => {
@@ -1024,6 +1077,7 @@ function renderLoadout() {
   const box = ref('loadout');
   const chosen = meta.loadoutTowers();
   ref('loadoutCount').textContent = `${chosen.length}/${LOADOUT_SIZE}`;
+  if (TOWER_ORDER.filter((t) => meta.ownsTower(t)).length > LOADOUT_SIZE) tips.trigger('loadout', { screen: 'difficulty', target: '.loadout' });
   box.innerHTML = '';
   for (const type of TOWER_ORDER) {
     if (!meta.ownsTower(type)) continue;
@@ -1046,6 +1100,7 @@ function renderLoadout() {
 }
 
 function toggleTower(btn, type) {
+  tips.complete('loadout');
   const res = meta.toggleLoadout(type); // EV.PROFILE → kaydedilir
   if (!res.ok) {
     play('ui_deny');
@@ -1183,6 +1238,9 @@ function buildSettings() {
     if (gr.id === 'display') {
       rows.unshift(`<button type="button" class="set-row set-link pc-only" data-act="fullscreen" hidden><span class="fs-label">${TXT.fullscreen}</span><span class="set-value">F11</span></button>`);
     }
+    if (gr.id === 'help') {
+      rows.push(`<button type="button" class="set-row set-link" data-act="resetTips"><span><b>${SET.tipsReset}</b><small>${SET.tipsResetDesc}</small></span></button>`);
+    }
     if (gr.id === 'data') rows.push(dataRows());
     if (!rows.length) return '';
     const note = gr.note ? `<p class="set-note">${gr.noteText}</p>` : '';
@@ -1191,6 +1249,7 @@ function buildSettings() {
   const dataAt = SETTINGS_GROUPS.findIndex((gr) => gr.id === 'data');
   groups.splice(dataAt < 0 ? groups.length : dataAt, 0, keysGroup());
   list.innerHTML = groups.join('')
+    + `<a class="set-row set-link" href="${GAME.feedbackUrl}" target="_blank" rel="noopener" data-act="feedback"><span><b>${TXT.feedback}</b><small>${TXT.feedbackDesc}</small></span><span class="set-value">itch.io ↗</span></a>`
     + `<button type="button" class="set-row set-link" data-act="about"><span>${STRINGS.about.title}</span> <span class="set-value">${COPYRIGHT}</span></button>`;
 
   for (const input of list.querySelectorAll('input[type="range"]')) {

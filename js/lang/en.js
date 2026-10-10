@@ -35,26 +35,31 @@ export default {
       name: 'Ash Valley',
       sub: 'The first watch on burnt ground',
       desc: 'A burnt valley where the dead walk. The road winds like a serpent; the inner curves are the best tower spots.',
+      threat: 'Armored knights and self-healing brutes. Mortars crush armor; the Plague Cauldron stops regeneration.',
     },
     'ayaz-gecidi': {
       name: 'Frost Pass',
       sub: 'Between the frozen peaks',
       desc: 'Long, straight corridors of ice. Frost wolves cannot be slowed, ravens dodge arrows and witches weave ice shields.',
+      threat: 'Armored golems shatter on death, frost wolves can\'t be slowed and ravens dodge arrows. Area and magic damage pay off.',
     },
     'kara-bataklik': {
       name: 'Black Mire',
       sub: 'Rot from two gates',
       desc: 'Enemies pour in through two separate gates and meet in the heart of the swamp. Kill bloaters far from your towers.',
+      threat: 'From two gates: regenerating trolls, splitting slimes and burrowing lurkers. Poison and the Curse Totem are key.',
     },
     'kor-ocaklari': {
       name: 'Ember Forges',
       sub: 'Between rivers of lava',
       desc: 'A long zigzag between rivers of lava. Ember imps do not burn and war drummers speed up the horde.',
+      threat: 'Imps and molten giants don\'t burn, the giants are armored and wyverns fly. Use lightning, lances and frost instead of fire.',
     },
     'bosluk-tahti': {
       name: 'Void Throne',
       sub: 'The heart of the night',
       desc: 'Two gates, one winding and one short. Voidwalkers teleport and spiders web your towers. The night ends here.',
+      threat: 'Revenants are armored and magic resistant, voidwalkers blink and spiders web your towers. Plague Cauldrons and Curse Totems cut through.',
     },
   },
 
@@ -470,6 +475,11 @@ export default {
     autoWaveEnemies: 'Enemies left',
     autoWaveSouls: 'Souls saved',
     shopHideOwned: 'Hide owned',
+    tips: 'Tutorial tips',
+    discoveries: 'Info cards (new enemies and towers)',
+    tipsReset: 'Show tips again',
+    tipsResetDesc: 'Every tip you have seen will appear again when it becomes relevant.',
+    tipsResetDone: 'Tips will be shown again',
     options: {
       quality: { low: 'Low', medium: 'Medium', high: 'High' },
     },
@@ -478,10 +488,12 @@ export default {
       sound: 'Sound & Vibration',
       display: 'Display',
       auto: 'Auto Wave',
+      help: 'Guidance',
       data: 'Data',
     },
     notes: {
       auto: 'When on, the next wave is called by itself during the countdown once both conditions are met, and you still earn the early-call souls. You start the first wave yourself. In battle, toggle it with AUTO above the wave button.',
+      help: 'Tips walk you through the basics in your first battle, then explain new things as they come up. Info cards are the small boxes that introduce enemies and towers the first time you see them in battle.',
       data: 'Resetting can’t be undone.',
     },
     zero: { autoWaveEnemies: 'Field clear', autoWaveSouls: 'Any' },
@@ -705,6 +717,9 @@ export default {
     fullscreen: 'Full Screen',
     windowed: 'Exit Full Screen',
     fullscreenFail: 'Full screen is not available in this window',
+    feedback: 'Feedback',
+    feedbackDesc: 'Thoughts, ideas and bug reports',
+    threat: 'Main threat',
     saved: 'Saved defense',
     beforeFirst: 'before the first wave',
     loadFailed: 'The save couldn’t be read. Start a new game.',
@@ -821,6 +836,90 @@ export default {
       harden: 'Turns to iron',
       rebirth: 'Rises again',
       phases: 'Has phases',
+    },
+  },
+
+  // Each chapter's main threat tags (content/chapters.js → threats)
+  threats: {
+    armor: 'Heavy armor',
+    resist: 'Magic resistance',
+    regen: 'Regeneration',
+    air: 'Flyers',
+    fast: 'Fast runners',
+    split: 'Splitters',
+    phase: 'Vanishers',
+    fireproof: 'Fireproof',
+    blink: 'Blinkers',
+  },
+
+  // Tutorial tips (tips.js). pc: text used when playing with mouse and keyboard.
+  tips: {
+    ok: 'Got it',
+    off: 'Turn off tutorial',
+    offDone: 'Tutorial turned off. You can turn it back on in Settings → Guidance.',
+    aria: 'Tip',
+    build: {
+      title: 'Build a tower',
+      text: 'Pick a tower from the bar, tap an empty stone beside the road, then tap again to confirm. You can also drag a tower from the bar onto the map.',
+      pc: 'Pick a tower from the bar (or keys 1–6), then click an empty stone beside the road. You can also drag a tower from the bar onto the map.',
+    },
+    chain: {
+      title: 'Tower in hand',
+      text: 'The tower stays selected so you can build several in a row. To let go, tap it on the bar again or tap the road.',
+      pc: 'The tower stays selected so you can build several in a row. To let go, right-click or press Esc.',
+    },
+    wave: {
+      title: 'Start the wave',
+      text: 'Start the wave when you are ready. Call later waves before the countdown ends to earn early-call souls.',
+      pc: 'Start the wave when you are ready (Space). Call later waves before the countdown ends to earn early-call souls.',
+    },
+    upgrade: {
+      title: 'Upgrade towers',
+      text: 'Tap a tower to upgrade it, choose its target or sell it. Upgrading is often better value than building a new tower.',
+      pc: 'Click a tower to upgrade it (U), choose its target or sell it (X). Upgrading is often better value than building a new tower.',
+    },
+    speed: {
+      title: 'Game speed',
+      text: 'This button speeds the game up to 2× and 3×. At 0× time stops, but you can still build and upgrade.',
+      pc: 'This button (F) speeds the game up to 2× and 3×. At 0× time stops, but you can still build and upgrade.',
+    },
+    auto: {
+      title: 'Auto wave',
+      text: 'With AUTO on, the next wave comes by itself and you still earn the early-call souls. Pick its conditions in Settings.',
+    },
+    discover: {
+      title: 'New enemy',
+      text: 'Enemies you meet for the first time are introduced here. Tap the card to learn what they resist and what hurts them.',
+      pc: 'Enemies you meet for the first time are introduced here. Click the card to learn what they resist and what hurts them.',
+    },
+    skill: {
+      title: 'Your skill is ready',
+      text: 'The orb beside the castle is the skill you bought in the Market. Tap it to use it; the first use in every battle is free. For skills like the meteor you then tap where it should land.',
+      pc: 'The orb beside the castle is the skill you bought in the Market. Click it or press Q / E; the first use in every battle is free. For skills like the meteor you then click where it should land.',
+    },
+    boss: {
+      title: 'A boss arrives',
+      text: 'Bosses have huge health and take many lives if they reach the castle. Watch their health bar at the top and save your skills for them.',
+    },
+    mastery: {
+      title: 'Choose a mastery',
+      text: 'This tower is at its last level. Pick one of the two masteries: it changes how the tower fights and cannot be undone.',
+    },
+    loadout: {
+      title: 'Pick your towers',
+      text: 'You now own more than six towers. You can take up to six into battle: tap to add or remove them, based on the chapter’s threat.',
+      pc: 'You now own more than six towers. You can take up to six into battle: click to add or remove them, based on the chapter’s threat.',
+    },
+    market: {
+      title: 'Market',
+      text: 'You earned gold in battle. Spend it in the Market on new towers, skills and castle upgrades.',
+    },
+    equip: {
+      title: 'Equip your skill',
+      text: 'Equip the skill you bought on a side tower of the castle in the Castle tab; in battle you use it from the orb beside the castle.',
+    },
+    chapter: {
+      title: '{name}: main threat',
     },
   },
 };

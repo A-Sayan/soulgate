@@ -40,4 +40,14 @@ export const ICON = Object.freeze({
   // tam ekran: dışa açılan köşeler / pencereye dönüş: içe kapanan köşeler
   fullscreen: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-line" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>',
   windowed: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-line" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>',
+  // ---- bölüm tehditleri (content/chapters.js → threats; renk style.css .threat) ----
+  t_armor: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l7.5 3v6c0 4.6-3.2 8.4-7.5 10-4.3-1.6-7.5-5.4-7.5-10v-6z"/><path class="i-hi" d="M12 5.4v13.4"/></svg>',
+  t_resist: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="i-line" cx="12" cy="12" r="8.5"/><path d="M12 6.5l1.6 3.9 4.2.3-3.2 2.7 1 4.1-3.6-2.2-3.6 2.2 1-4.1-3.2-2.7 4.2-.3z"/></svg>',
+  t_regen: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 4.3 2.4.7-1.2 2.1-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/><path class="i-hi" d="M12 9v6M9 12h6"/></svg>',
+  t_air: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 13c-1.6-3.4-4.6-5.6-9.5-6 1.4 4.4 4 7.6 9.5 9.5 5.5-1.9 8.1-5.1 9.5-9.5-4.9.4-7.9 2.6-9.5 6z"/><circle cx="12" cy="9.5" r="1.8"/></svg>',
+  t_fast: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-line" d="M4 6l6 6-6 6M12 6l6 6-6 6"/></svg>',
+  t_split: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><circle cx="6" cy="17.5" r="2.6"/><circle cx="12" cy="18.8" r="2"/><circle cx="18" cy="17.5" r="2.6"/></svg>',
+  t_phase: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20.5V11a7 7 0 0 1 14 0v9.5l-2.4-1.8-2.3 1.8-2.3-1.8-2.3 1.8-2.3-1.8z"/><circle class="i-hi" cx="9.5" cy="11" r="1.4"/><circle class="i-hi" cx="14.5" cy="11" r="1.4"/></svg>',
+  t_fireproof: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 3.2 6.5 6.6 6.5 10.6a6.5 6.5 0 0 1-13 0c0-2.6 1.3-4.6 3.2-6.4.2 2 .9 3.2 2.1 3.9-.3-3 .2-5.5 1.2-8.1z"/><path class="i-line i-cut" d="M4 4l16 16"/></svg>',
+  t_blink: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/><circle cx="18.5" cy="18.5" r="1.6"/><circle cx="5" cy="19.5" r="1.1"/></svg>',
 });

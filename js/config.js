@@ -27,7 +27,7 @@ import { CHAPTER_DEFS } from './content/chapters.js';
 export const GAME = {
   title: 'Soulgate',
   fullTitle: 'Soulgate: Tower Defense',
-  version: '1.3.0',
+  version: '1.4.0',
   year: 2026,                 // ilk yayın yılı
   studio: 'Sayk Studio',      // yayıncı; telif satırında görünür
   owner: 'A. Sayan',          // telif sahibi
@@ -37,6 +37,10 @@ export const GAME = {
     { role: 'assistant', name: 'S. Soytürk' },
   ],
   // tagline, taglines → canlı metin (bölüm 18)
+  // Geri bildirim: ana menü ve ayarlardaki düğme bu adresi yeni sekmede açar
+  // (Android uygulamasında telefonun tarayıcısında). İleride Play Store / GitHub
+  // sayfasına yönlendirmek için yalnızca bu satır değişir.
+  feedbackUrl: 'https://a-sayan.itch.io/soulgate-tower-defense',
 };
 
 /* --------------------------------------------------------------------------
@@ -63,6 +67,16 @@ export const WAVE_COUNT = 30;
  * göre <html>'e .wide sınıfı koyar; style.css ve ui.js o sınıfa bakar.
  * Yatay telefon (yükseklik < 500) bu düzene girmez: orada "dik tut" uyarısı var.
  */
+/**
+ * ÖĞRETİCİ İPUÇLARI (tips.js). Kimlikler görülme listesine yazılır (records.tips);
+ * metinler lang tips.<kimlik>. Sıra: aynı anda sıraya girenlerde öncelik (küçük önce).
+ * 'chapter-<bölüm>' ipuçları (2.–5. bölüm) bölümün tehdidini ilk girişte anlatır.
+ */
+export const TIPS = {
+  order: ['build', 'chain', 'wave', 'upgrade', 'speed', 'auto', 'discover', 'skill', 'boss', 'mastery', 'loadout', 'market', 'equip'],
+  delay: 0.6,   // bir ipucu kapandıktan sonra sıradakine kadar (sn)
+};
+
 export const LAYOUT = {
   wideQuery: '(min-aspect-ratio: 5/4) and (min-width: 880px) and (min-height: 500px)',
 };
@@ -392,6 +406,8 @@ export const DEFAULT_SETTINGS = {
   autoWaveEnemies: 0,   // en çok bu kadar düşman kalınca (0 = saha boş, AUTO_WAVE.maxEnemies = fark etmez)
   autoWaveSouls: 0,     // en az bu kadar ruh birikince (0 = şartsız)
   shopHideOwned: false, // çarşıda alınmış / en üst seviyedekileri gizle (çarşının kendi düğmesi)
+  tips: true,           // öğretici ipuçları (tips.js)
+  discoveries: true,    // ilk kez görülen düşman / kule için oyun içi bilgi kartları
 };
 
 /*
@@ -409,6 +425,7 @@ export const SETTINGS_GROUPS = [
   { id: 'sound' },
   { id: 'display' },
   { id: 'auto', note: true },
+  { id: 'help', note: true },  // öğretici ve bilgi kartları (+ "baştan göster", menu.js)
   { id: 'data', note: true }, // ilerlemeyi sıfırla / tüm verileri sil (menu.js; yalnızca ana menüden)
 ];
 
@@ -432,6 +449,8 @@ export const SETTINGS_SCHEMA = [
     fmt: 'int', zero: true, value: true,
   },
   { key: 'shopHideOwned', type: 'toggle', view: 'hidden' },
+  { key: 'tips', group: 'help', type: 'toggle' },
+  { key: 'discoveries', group: 'help', type: 'toggle' },
 ];
 
 /* --------------------------------------------------------------------------
@@ -574,7 +593,7 @@ export const STRINGS = section('strings');
 liveField(GAME, 'tagline', 'game.tagline');
 liveField(GAME, 'taglines', 'game.taglines'); // ana menüde sırayla değişen sözler
 for (const m of MAPS) {
-  live(m, `maps.${m.id}`, ['name', 'sub', 'desc']);
+  live(m, `maps.${m.id}`, ['name', 'sub', 'desc', 'threat']);
   m.waves.forEach((w, i) => liveField(w, 'name', `waves.${m.id}.${i + 1}`, ''));
 }
 for (const [id, d] of Object.entries(DIFFICULTIES)) live(d, `difficulties.${id}`, ['name', 'desc']);
@@ -616,7 +635,7 @@ function deepFreeze(obj) {
 }
 
 [
-  GAME, GRID, LAYOUT, MAPS, TIMING, ECONOMY, DIFFICULTIES, DIFFICULTY_ORDER, SCALING,
+  GAME, GRID, LAYOUT, TIPS, MAPS, TIMING, ECONOMY, DIFFICULTIES, DIFFICULTY_ORDER, SCALING,
   WAVE_RULES, WAVE_TAGS, DAMAGE_TYPES, COMBAT, TOWER_STAT_DEFAULTS, TOWERS,
   TOWER_ORDER, TARGET_MODES, STAT_LABELS, ENEMIES, FEEL, QUALITY, MAP_BY_ID, MAP_ORDER,
   THEME, FONTS, AUDIO, DEFAULT_SETTINGS, SETTINGS_SCHEMA, SETTINGS_GROUPS, AUTO_WAVE, SAVE, STRINGS,

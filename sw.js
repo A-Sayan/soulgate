@@ -12,7 +12,7 @@
  *  Dosya listesi değişirse VERSION artırılır.
  * ========================================================================== */
 
-const VERSION = 'soulgate-v6';
+const VERSION = 'soulgate-v7';
 
 const ASSETS = [
   './',
@@ -57,6 +57,7 @@ const ASSETS = [
   './js/render.js',
   './js/input.js',
   './js/modal.js',
+  './js/tips.js',
   './js/ui.js',
   './js/menu.js',
 ];

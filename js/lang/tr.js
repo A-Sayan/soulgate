@@ -43,26 +43,31 @@ export default {
       name: 'Kül Vadisi',
       sub: 'Yanık topraklarda ilk nöbet',
       desc: 'Ölülerin yürüdüğü yanık vadi. Yol yılan gibi kıvrılır; kıvrımların içi en iyi kule yerleridir.',
+      threat: 'Zırhlı şövalyeler ve kendini iyileştiren devler. Havan zırhı ezer, Veba Kazanı yenilenmeyi durdurur.',
     },
     'ayaz-gecidi': {
       name: 'Ayaz Geçidi',
       sub: 'Donmuş dağların arasında',
       desc: 'Uzun, düz buz koridorları. Ayaz kurtları yavaşlamaz, kuzgunlar okları ıskalatır, cadılar buz kalkanı örer.',
+      threat: 'Zırhlı golemler ölünce parçalanır, ayaz kurtları yavaşlamaz, kuzgunlar okları ıskalatır. Alan hasarı ve büyü işe yarar.',
     },
     'kara-bataklik': {
       name: 'Kara Bataklık',
       sub: 'İki kapıdan gelen çürüme',
       desc: 'Düşmanlar iki ayrı kapıdan girer ve bataklığın ortasında birleşir. Şişkinleri kulelerinden uzakta öldür.',
+      threat: 'İki kapıdan yenilenen troller, bölünen balçıklar ve toprağa gömülen pusucular gelir. Zehir ve Lanet Totemi kilit kulelerdir.',
     },
     'kor-ocaklari': {
       name: 'Kor Ocakları',
       sub: 'Lav nehirleri arasında',
       desc: 'Lav nehirlerinin arasında uzun bir zikzak. Kor iblisleri yanmaz, davulcular sürüyü hızlandırır.',
+      threat: 'İblisler ve erimiş devler yanmaz, devler zırhlıdır, ejderler uçar. Yanma yerine şimşek, mızrak ve buz kullan.',
     },
     'bosluk-tahti': {
       name: 'Boşluk Tahtı',
       sub: 'Gecenin kalbi',
       desc: 'Biri kıvrımlı, biri kısa iki kapı. Gezginler ışınlanır, örümcekler kuleleri ağlar. Gecenin sonu burada.',
+      threat: 'Hayaletler hem zırhlı hem büyüye dirençlidir, gezginler ışınlanır, örümcekler kuleleri ağlar. Veba Kazanı ve Lanet Totemi savunmalarını deler.',
     },
   },
 
@@ -479,6 +484,11 @@ export default {
     autoWaveEnemies: 'Kalan düşman',
     autoWaveSouls: 'Ruh birikimi',
     shopHideOwned: 'Alınmışları gizle',
+    tips: 'Öğretici ipuçları',
+    discoveries: 'Bilgi kartları (yeni düşman ve kule)',
+    tipsReset: 'İpuçlarını baştan göster',
+    tipsResetDesc: 'Görülen bütün ipuçları yeri gelince yeniden çıkar.',
+    tipsResetDone: 'İpuçları yeniden gösterilecek',
     options: {
       quality: { low: 'Düşük', medium: 'Orta', high: 'Yüksek' },
     },
@@ -487,10 +497,12 @@ export default {
       sound: 'Ses ve Titreşim',
       display: 'Görüntü',
       auto: 'Otomatik Dalga',
+      help: 'Rehberlik',
       data: 'Veriler',
     },
     notes: {
       auto: 'Açıkken, geri sayım sürerken iki koşul da sağlanınca sıradaki dalga kendiliğinden çağrılır ve erken çağrı ruhu kazanılır. İlk dalgayı sen başlatırsın. Oyunda dalga düğmesinin üstündeki OTO ile açıp kapatabilirsin.',
+      help: 'İpuçları ilk savaşta temel adımları, sonra yeni şeyleri yeri gelince anlatır. Bilgi kartları, oyunda ilk kez görülen düşman ve kuleler için çıkan kutucuklardır.',
       data: 'Sıfırlama geri alınamaz.',
     },
     zero: { autoWaveEnemies: 'Saha boş', autoWaveSouls: 'Şartsız' },
@@ -719,6 +731,9 @@ export default {
     fullscreen: 'Tam Ekran',
     windowed: 'Tam Ekrandan Çık',
     fullscreenFail: 'Tam ekran bu pencerede açılamıyor',
+    feedback: 'Geri Bildirim',
+    feedbackDesc: 'Görüş, öneri ve hata bildirimi',
+    threat: 'Asıl tehdit',
     saved: 'Kayıtlı savunma',
     beforeFirst: 'ilk dalgadan önce',
     loadFailed: 'Kayıt okunamadı, yeni bir oyun başlat.',
@@ -835,6 +850,90 @@ export default {
       harden: 'Demirleşir',
       rebirth: 'Yeniden doğar',
       phases: 'Evreli',
+    },
+  },
+
+  // Bölümlerin asıl tehdit etiketleri (content/chapters.js → threats)
+  threats: {
+    armor: 'Ağır zırh',
+    resist: 'Büyü direnci',
+    regen: 'Yenilenme',
+    air: 'Uçanlar',
+    fast: 'Hızlılar',
+    split: 'Bölünenler',
+    phase: 'Kaybolanlar',
+    fireproof: 'Yanmazlar',
+    blink: 'Işınlananlar',
+  },
+
+  // Öğretici ipuçları (tips.js). pc: fare ve klavyeyle oynanırken kullanılan metin.
+  tips: {
+    ok: 'Anladım',
+    off: 'Öğreticiyi kapat',
+    offDone: 'Öğretici kapandı. Ayarlar → Rehberlik bölümünden yeniden açabilirsin.',
+    aria: 'İpucu',
+    build: {
+      title: 'Kule kur',
+      text: 'Bardan bir kule seç, yolun yanındaki boş bir taşa dokun, onaylamak için yeniden dokun. Kuleyi bardan haritaya sürükleyebilirsin de.',
+      pc: 'Bardan bir kule seç (ya da 1–6 tuşları), sonra yolun yanındaki boş bir taşa tıkla. Kuleyi bardan haritaya sürükleyebilirsin de.',
+    },
+    chain: {
+      title: 'Kule elinde',
+      text: 'Kule seçili kalır: aynısından peş peşe kurabilirsin. Bırakmak için bardaki kuleye yeniden dokun ya da yola dokun.',
+      pc: 'Kule seçili kalır: aynısından peş peşe kurabilirsin. Bırakmak için sağ tıkla ya da Esc\'e bas.',
+    },
+    wave: {
+      title: 'Dalgayı başlat',
+      text: 'Hazır olunca dalgayı başlat. Sonraki dalgaları geri sayım bitmeden çağırırsan erken çağrı ruhu kazanırsın.',
+      pc: 'Hazır olunca dalgayı başlat (Boşluk). Sonraki dalgaları geri sayım bitmeden çağırırsan erken çağrı ruhu kazanırsın.',
+    },
+    upgrade: {
+      title: 'Kuleyi yükselt',
+      text: 'Bir kuleye dokun: yükselt, hedefini seç ya da sat. Yükseltmek çoğu zaman yeni kule kurmaktan daha verimlidir.',
+      pc: 'Bir kuleye tıkla: yükselt (U), hedefini seç ya da sat (X). Yükseltmek çoğu zaman yeni kule kurmaktan daha verimlidir.',
+    },
+    speed: {
+      title: 'Oyun hızı',
+      text: 'Bu düğme oyunu 2× ve 3× hızlandırır. 0×\'da zaman durur ama kule kurmaya ve yükseltmeye devam edebilirsin.',
+      pc: 'Bu düğme (F) oyunu 2× ve 3× hızlandırır. 0×\'da zaman durur ama kule kurmaya ve yükseltmeye devam edebilirsin.',
+    },
+    auto: {
+      title: 'Otomatik dalga',
+      text: 'OTO açıkken sıradaki dalga kendiliğinden gelir ve erken çağrı ruhunu yine kazanırsın. Koşullarını Ayarlar\'dan seçebilirsin.',
+    },
+    discover: {
+      title: 'Yeni düşman',
+      text: 'İlk kez görülen düşmanlar burada tanıtılır. Karta dokun: neye dayanıklı, neye zayıf, öğren.',
+      pc: 'İlk kez görülen düşmanlar burada tanıtılır. Karta tıkla: neye dayanıklı, neye zayıf, öğren.',
+    },
+    skill: {
+      title: 'Yeteneğin hazır',
+      text: 'Kalenin yanındaki küre, çarşıdan aldığın yetenektir. Dokun ve kullan; her savaşta ilk kullanımı ücretsizdir. Meteor gibi yeteneklerde sonra düşeceği yere dokunursun.',
+      pc: 'Kalenin yanındaki küre, çarşıdan aldığın yetenektir. Tıkla ya da Q / E tuşuna bas; her savaşta ilk kullanımı ücretsizdir. Meteor gibi yeteneklerde sonra düşeceği yere tıklarsın.',
+    },
+    boss: {
+      title: 'Patron geldi',
+      text: 'Patronların canı çok yüksektir; kaleye ulaşırsa çok can götürür. Can barını yukarıda izle, yeteneklerini ona sakla.',
+    },
+    mastery: {
+      title: 'Ustalık seç',
+      text: 'Bu kule son seviyesinde. İki ustalıktan birini seç: kulenin tarzını değiştirir ve sonradan geri alınamaz.',
+    },
+    loadout: {
+      title: 'Kule seçimi',
+      text: 'Artık altıdan fazla kulen var. Savaşa en çok altısını götürebilirsin: bölümün tehdidine göre dokunarak seç ya da çıkar.',
+      pc: 'Artık altıdan fazla kulen var. Savaşa en çok altısını götürebilirsin: bölümün tehdidine göre tıklayarak seç ya da çıkar.',
+    },
+    market: {
+      title: 'Çarşı',
+      text: 'Savaşlardan altın kazandın. Çarşıda yeni kuleler, yetenekler ve kale geliştirmeleri alabilirsin.',
+    },
+    equip: {
+      title: 'Yeteneği tak',
+      text: 'Aldığın yeteneği Kale sekmesinden kalenin yan kulesine tak; savaşta kalenin yanındaki küreden kullanırsın.',
+    },
+    chapter: {
+      title: '{name}: asıl tehdit',
     },
   },
 };

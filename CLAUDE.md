@@ -13,7 +13,7 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
   oyuncunun ne göreceğini anlat. Kodu kendisi telefonda Spck Editor ile açar ve önizler.
 - **Teslim alışkanlığı:** iş bitince kısa Türkçe özet, değişen dosyaların listesi, gerekiyorsa
   dosyalar (APK, zip) sohbete gönderilir. Uzun teknik anlatı yok.
-- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.3.0**). APK sürümü de buradan okunur.
+- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.4.0**). APK sürümü de buradan okunur.
 
 ## 2. Yayın kanalları (hepsi canlı)
 
@@ -21,7 +21,7 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
 |---|---|---|
 | GitHub deposu | `A-Sayan/soulgate` (public), dal `main` | push |
 | Tarayıcı sürümü | https://a-sayan.github.io/soulgate/ | `main`'e push → `.github/workflows/pages.yml` kendiliğinden yayımlar |
-| APK + web paketi | GitHub Releases (`v1.3.0` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
+| APK + web paketi | GitHub Releases (`v1.4.0` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
 | itch.io | Kullanıcının sayfası (kuruldu) | Kullanıcı elle yükler: Release'teki `Soulgate-x.y.z-web.zip` + `Soulgate-x.y.z.apk` |
 
 **Erişim:** Claude oturumları kullanıcının `m-Salih38` GitHub bağlantısıyla çalışır. `m-Salih38`, `A-Sayan/soulgate`
@@ -42,7 +42,7 @@ ve Release dosyası indirme çalışır. Bu yüzden **APK yerelde derlenmez, Git
 2. `js/config.js` → `GAME.version` artır (semver). Android `versionCode = a*10000 + b*100 + c` kendiliğinden hesaplanır.
    **Sürüm artırılmadan Release tetikleme** (aynı etiket zaten var).
 3. `.github/release-notes.md` güncelle (TR + EN, dosya adlarındaki sürüm).
-4. `sw.js`: oyun dosyası eklendi/silindiyse `ASSETS` listesini güncelle ve `VERSION`'ı artır (şu an `soulgate-v6`).
+4. `sw.js`: oyun dosyası eklendi/silindiyse `ASSETS` listesini güncelle ve `VERSION`'ı artır (şu an `soulgate-v7`).
 5. Commit + `git push origin main` → Pages kendiliğinden yayımlar.
 6. Release'i tetikle:
    `gh api repos/A-Sayan/soulgate/actions/workflows` ile release.yml kimliğini bul →
@@ -72,6 +72,8 @@ güncellenemez ve oyuncunun ilerlemesi silinir.
 - Ses tamamen sentez (Web Audio), ses dosyası yok. Her bölümün kendi müziği (`audio.js` → `setTune`).
   Müzikte sürekli bas uğultusu ve rüzgâr YOK (1.3.0'da kullanıcı isteğiyle kaldırıldı: boğuk, yorucu). Geri ekleme.
 - Onay için yalnızca özel pencere (`modal.js`). `alert/confirm/prompt` yok.
+- Yeni bir mekanik ya da ekran oyuncuya anlatılmalıysa öğreticiye ipucu ekle (bkz. bölüm 5 "Öğretici"); ipucu oyunu
+  durdurmaz, anlattığı iş yapılınca `tips.complete(id)` ile kapanır.
 - Ayarlar ve kayıtlar anında uygulanır/yazılır.
 - TODO ya da yarım özellik bırakılmaz.
 - Bir modül değişecekse yalnızca o modül ve ona doğrudan bağlı olanlar değişir.
@@ -91,7 +93,7 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
 1  state, save, audio
 2  particles, sprites (+ art/kit, art/towers, art/enemies, art/maps), meta
 3  game
-4  render, input, modal
+4  render, input, modal, tips
 5  ui, menu
 6  main
 ```
@@ -110,6 +112,7 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
 | `js/render.js` | Canvas çizimi, menü sahnesi, efektler, atmosfer |
 | `js/particles.js` | Parçacıklar ve olay efektleri |
 | `js/audio.js` | Sentez sesler ve müzik |
+| `js/tips.js` | Öğretici ipuçları: sıra, kart + halka, olaylara göre tetikleme/kapanma (`TIPS` config'de) |
 | `js/ui.js` | Oyun içi arayüz (HUD, kule barı, paneller, keşif kartları, beceri küreleri) |
 | `js/menu.js` | Menüler: ana, bölümler, zorluk + kule seçimi, çarşı, rehber, bilgi, ayarlar, hakkında, sonuç |
 | `js/main.js` | Açılış, sabit adımlı döngü, geri tuşu, görünürlük, wake lock, service worker |
@@ -153,6 +156,30 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
 - Kısayol rozetleri: düğmelerde `data-hotkey` → CSS `::after` (yalnızca fareyle). `data-key` KULLANMA: ayarlarda başka işi var.
   Ayarlarda "Klavye ve Fare" listesi (`menu.js keysGroup`, metinler `settings.keys.*`) yalnızca bilgisayarda görünür.
 
+**Öğretici, tehditler, geri bildirim (1.4.0)**
+
+- `js/tips.js` (katman 4): her ipucu bir kez gösterilir; görülenler `records.tips` (`discover('tip', id)`). Ayar `tips`
+  kapalıysa hiçbir şey çıkmaz. Sıra `config TIPS.order` (build, chain, wave, upgrade, speed, auto, discover, skill, boss,
+  mastery, loadout, market, equip) + `chapter-<id>` (yeni bölüme ilk giriş, `map.threat` metni; ilk dalga başlayınca kapanır).
+  `trigger(id, {target, screen, side})`: hedef CSS seçicisi ya da harita noktası `{wx, wy, wr}`; `screen` verilirse menü
+  ipucudur (o ekran açıkken), yoksa oyun ipucu (oyun akarken; duraklatınca gizlenir, sırada bekler). `complete(id)`:
+  iş yapıldı (gösterilmemiş olsa da görüldü sayılır). Oyun olaylarını tips.js kendisi dinler (BUILD, WAVE_START,
+  WAVE_CLEAR, UPGRADE, SPEED, SKILL, BOSS_SPAWN…); arayüze bağlı olanları ui.js (chain, discover, mastery) ve menu.js
+  (market, equip, loadout) tetikler. Kart hedefi örtmez: önce alt/üst, sonra yanlar; OTO/dalga ve ana menüdeki oyna
+  düğmelerinin üstüne binmez (`AVOID`); menüde hedef görünmüyorsa sayfa kaydırılır. Ayarlar → Rehberlik
+  (`tips`, `discoveries` ve `resetTips`). `discoveries` kapalıysa keşif kartları çıkmaz (düşman yine rehbere girer).
+- Kule elde kalır (`ui.js` `chained`): kurduktan sonra aynı kule seçili kalır. Bırakmak: bardaki kuleye yeniden basmak,
+  yola/dolu hücreye dokunmak (ruh yetmiyorsa elde kalır), sağ tık, Esc. İlk bırakışta 'chain' ipucu tamamlanır.
+- Bölüm tehdidi: `chapters.js` → `threats` (armor, resist, regen, air, fast, split, phase, fireproof, blink) ve dil
+  dosyasında `maps.<id>.threat` cümlesi. Etiketler `menu.js threatChips` (simgeler `icons.js t_*`, adlar `threats.*`):
+  bölüm kartında ve zorluk ekranında ("Asıl tehdit" kutusu). Tehditler bölümün düşman can paylarına göre seçildi.
+- Geri bildirim: `GAME.feedbackUrl` (şimdilik itch.io sayfası). `menu.js feedbackLink`: ana menü alt satırı ve Ayarlar'da
+  `<a target=_blank>`; Android'de telefonun tarayıcısında açılır. İleride Play Store / GitHub'a çevirmek için yalnızca URL.
+- Esc ve tam ekran: tam ekrana girince `navigator.keyboard.lock(['Escape'])` (Chrome/Edge, yalnızca üst pencerede): Esc
+  sayfaya gelir ve duraklatır; çıkmak için Esc basılı tutulur. Kilit yoksa (Firefox/Safari, itch.io'nun kendi tam ekranı)
+  tam ekrandan çıkınca oyun duraklar (`menu.js onFullscreenChange`); itch'in çerçeve tam ekranı için `main.js
+  pauseOnShrink` (fareli cihazda pencere alanı %20'den çok küçülünce oyun duraklar).
+
 **Önemli mekanikler**
 
 - Döngü sabit adım `1/60`; hız `[1, 2, 3, 0]` adım sayısını çarpar.
@@ -175,12 +202,14 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
   Çarşı ürünleri bölümün `unlocks` listesiyle açılır. Rekorlar bölüm × zorluk bazında; eski biçimden geçiş var.
 - Savaştan önce en çok 6 kule seçilir (`LOADOUT_SIZE`).
 
-## 6. İçerik (1.3.0)
+## 6. İçerik (1.4.0)
 
 **Bölümler** (her biri 30 dalga; 10/20/30 patron):
 1. `kul-vadisi` Kül Vadisi (tek yol). 2. `ayaz-gecidi` Ayaz Geçidi (açar: lance, prism, thunder, timestop).
 3. `kara-bataklik` Kara Bataklık (iki kapı; açar: flame, well, plague, mend).
 4. `kor-ocaklari` Kor Ocakları (açar: hunter, bell, vortex, reaper). 5. `bosluk-tahti` Boşluk Tahtı (iki kapı).
+Tehditler: 1 zırh + yenilenme · 2 zırh + hızlı + uçan · 3 yenilenme + bölünen + kaybolan · 4 yanmaz + zırh + uçan ·
+5 zırh + büyü direnci + ışınlanan.
 
 **Kuleler (12):** archer Okçu Kulesi, mortar Ateş Havanı (başlangıçta açık), frost Ayaz Obeliski 150,
 poison Veba Kazanı 260, tesla Fırtına Kulesi 420, curse Lanet Totemi 560, lance Mızrak Atar 380,
@@ -219,6 +248,8 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
 - Tarayıcı testleri: depo kökünde `python3 -m http.server 8765 --bind 127.0.0.1`, sonra `python3 dev/e2e.py all`
   (telefon) ve `python3 dev/desktop.py` (bilgisayar: 8 pencere boyutu, fare + klavye; "SONUÇ: BAŞARILI" yazmalı).
   Konsolda hata olmamalı. Ekran görüntülerine bakarak kontrol et (desktop.py 9 boyut: geniş, alçak, dev, ultra geniş).
+  Ayrıca `python3 dev/e2e2.py` (zafer, rehber, paneller) ve `python3 dev/tips.py` (öğretici sırası, kule elde kalma,
+  tehdit etiketleri, geri bildirim, Rehberlik ayarları; bilgisayar + telefon; "SONUÇ: BAŞARILI").
 - Denge: `node dev/balance.mjs all easy,normal,hard full,mid` (iki kez çalıştır, sonuçlar rastgelelik içerir);
   yeni oyuncu: `node dev/balance.mjs kul-vadisi,ayaz-gecidi easy,normal,hard start starter`.
   Ekonomi ve patron hissi: `node dev/economy.mjs all easy,normal,hard full classic` (ruh kaynakları, harita doluluğu,
@@ -232,7 +263,8 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
 
 ## 9. Açık konular
 
-- 1.2.1 APK kullanıcının telefonunda denendi: ses açma/kapama, geri tuşu ve diğerleri sorunsuz. 1.3.0'ın denemesi bekleniyor.
+- 1.2.1 APK kullanıcının telefonunda denendi: ses açma/kapama, geri tuşu ve diğerleri sorunsuz. 1.4.0'ın denemesi
+  bekleniyor (öğretici telefonda, geri bildirim bağlantısının tarayıcıda açılması).
 - itch.io gömülü pencere boyutu kullanıcıda; oyun her boyutta açılır, dikey (ör. 540×960) ya da tam ekran düğmesi en iyisi.
 - Lisans ekranındaki bir madde (`strings.about.terms`, iki dilde) yazı tiplerinin "Google Fonts'tan yüklendiğini" söylüyor;
   oysa oyunla birlikte geliyorlar. Kullanıcıya söylendi, onayı olmadan değiştirilmedi.

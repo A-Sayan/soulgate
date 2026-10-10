@@ -26,6 +26,7 @@ import * as game from './game.js';
 import * as render from './render.js';
 import * as input from './input.js';
 import * as modal from './modal.js';
+import * as tips from './tips.js';
 import * as ui from './ui.js';
 import * as menu from './menu.js';
 
@@ -50,6 +51,7 @@ function boot() {
   input.init(canvas);
   ui.init(document.getElementById('ui'));
   menu.init(document.getElementById('menu'));
+  tips.init();
 
   wireEvents();
   watchViewport();
@@ -183,9 +185,27 @@ function applyLayout() {
   document.documentElement.classList.toggle('wide', !!(wideQuery && wideQuery.matches));
 }
 
+/**
+ * Bilgisayarda pencere birden küçülürse (çerçevenin, ör. itch.io'nun kendi tam
+ * ekranından Esc ile çıkılması: o Esc sayfaya hiç ulaşmaz) oyun duraklar.
+ * Pencereyi elle sürükleyerek boyutlamak küçük adımlarla olur, buna takılmaz.
+ */
+const finePointer = typeof matchMedia === 'function' ? matchMedia('(hover: hover) and (pointer: fine)') : null;
+let lastArea = 0;
+function pauseOnShrink() {
+  const area = (globalThis.innerWidth || 0) * (globalThis.innerHeight || 0);
+  const shrank = lastArea > 0 && area < lastArea * 0.8;
+  lastArea = area;
+  if (!shrank || !finePointer || !finePointer.matches) return;
+  const run = state.run;
+  if (state.scene === 'game' && run && !run.over && !run.paused && menu.currentScreen() === null) menu.openPause();
+}
+
 function watchViewport() {
   let pending = 0;
+  lastArea = (globalThis.innerWidth || 0) * (globalThis.innerHeight || 0);
   const onResize = () => {
+    pauseOnShrink(); // her olayda: sürüklemedeki küçük adımlar birikip yanlış alarm vermesin
     cancelAnimationFrame(pending);
     pending = requestAnimationFrame(() => {
       applyLayout();
@@ -255,6 +275,7 @@ function frame(dt) {
 
   fx.updateReal(dt);
   ui.update(dt);
+  tips.update();
   render.draw(dt);
 }
 

@@ -11,7 +11,7 @@
  *     1  state · save · audio
  *     2  particles · sprites
  *     3  game
- *     4  render · input · modal
+ *     4  render · input · modal · tips
  *     5  ui · menu
  *     6  main
  *   Aşağı yön  → doğrudan fonksiyon çağrısı (ui → game.build(...)).
