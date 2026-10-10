@@ -92,6 +92,7 @@ function wireEvents() {
   on(EV.SCENE, syncWakeLock);
   on(EV.PAUSE, syncWakeLock);
   on(EV.RUN_END, syncWakeLock);
+  on(EV.RUN_CONTINUE, syncWakeLock); // zaferden sonra Sonsuz Gece sürüyor
 
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('pagehide', flushAll);

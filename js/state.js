@@ -18,7 +18,7 @@
 import {
   GRID, MAPS, MAP_BY_ID, MAP_ORDER, WAVE_COUNT, DIFFICULTIES, DIFFICULTY_ORDER, DEFAULT_DIFFICULTY,
   DEFAULT_SETTINGS, SETTINGS_SCHEMA, TOWERS, TOWER_ORDER, TARGET_MODES, TIMING,
-  META, CASTLE, SKILLS, SIDES, ENEMIES, LOADOUT_SIZE, TIPS,
+  META, CASTLE, SKILLS, SIDES, ENEMIES, LOADOUT_SIZE, TIPS, MODES, MODIFIERS, CHALLENGE_BY_ID, ENDLESS, MAP_EVENTS,
 } from './config.js';
 import { buildPolyline, polylineCells, cellIndex, inBounds } from './utils.js';
 import { EV, emit } from './events.js';
@@ -155,6 +155,7 @@ export function createMap(mapId) {
     hp: def.hp,                               // bölüm çarpanları (düşman canı, ruh)
     horde: def.horde ?? 1,                    // yalnızca sıradan düşmanların canı (patronlar hariç)
     souls: def.souls,
+    event: def.event ?? null,                 // bölümün harita olayı (config MAP_EVENTS)
   };
 }
 
@@ -179,13 +180,45 @@ function createStats() {
   return { kills: 0, soulsEarned: 0, leaked: 0, built: 0, bossKills: 0, skillsUsed: 0 };
 }
 
-/** Yeni, boş bir oyun kurar ve state.run / state.map'e yerleştirir. */
-export function newRun(difficultyId, mapId = MAP_ORDER[0]) {
+/** Bugünün yerel tarihi 'YYYY-AA-GG' (Günün Sınavı bununla seçilir). */
+export function todayKey(date = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+}
+const isDayKey = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+/**
+ * Oyunun modu ve kuralları (1.5.0). Bilinmeyen değerler atılır.
+ * opt: { mode, mods, challenge, daily }
+ */
+function cleanModeOptions(opt) {
+  const src = opt && typeof opt === 'object' ? opt : {};
+  const mode = MODES.includes(src.mode) ? src.mode : 'campaign';
+  const mods = Array.isArray(src.mods) ? [...new Set(src.mods.filter((m) => typeof m === 'string' && MODIFIERS[m]))] : [];
+  const challenge = mode === 'challenge' && CHALLENGE_BY_ID[src.challenge] ? src.challenge : '';
+  const daily = mode === 'daily' && isDayKey(src.daily) ? src.daily : '';
+  return { mode, mods, challenge, daily };
+}
+
+/**
+ * Yeni, boş bir oyun kurar ve state.run / state.map'e yerleştirir.
+ * opt: { mode, mods, challenge, daily } — yoksa bölüm (campaign) oyunu.
+ */
+export function newRun(difficultyId, mapId = MAP_ORDER[0], opt = null) {
   const diff = DIFFICULTIES[difficultyId] ?? DIFFICULTIES[DEFAULT_DIFFICULTY];
+  const m = cleanModeOptions(opt);
   state.map = createMap(mapId);
   state.run = {
     difficulty: diff.id,
     mapId: state.map.id,
+    // — mod ve kurallar (1.5.0) —
+    mode: m.mode,        // 'campaign' | 'endless' | 'daily' | 'challenge'
+    mods: m.mods,        // açık kurallar (MODIFIERS kimlikleri)
+    challenge: m.challenge, // sınav kimliği (mode 'challenge')
+    daily: m.daily,      // günün sınavının tarihi (mode 'daily')
+    // Bölüm zaferinden sonra Sonsuz Gece'ye devam edilirse, zaferde zaten işlenmiş
+    // kısım: { waves, bosses, kills } (ödül ve rekor yalnızca sonrasından); yoksa null
+    carry: null,
     souls: diff.startSouls,
     lives: diff.lives,
     maxLives: diff.lives,
@@ -216,10 +249,14 @@ export function newRun(difficultyId, mapId = MAP_ORDER[0]) {
     savedSkills: null,   // kayıttan gelen yetenek durumu (game.js eşler)
     chill: 0,            // Kış Kraliçesi'nin tipisi: kalan süre (kuleler yavaş ateş eder)
     chillRate: 1,        // tipi sürerken atış hızı çarpanı
+    eventT: 0,           // sıradaki harita olayına kalan savaş süresi (game.js kurar; kayda girmez)
   };
   resetUi();
   return state.run;
 }
+
+/** Bu oyunda kural açık mı? */
+export const hasMod = (id) => !!state.run && state.run.mods.includes(id);
 
 /** Oyunu kapatır (ana menüye dönüşte). */
 export function clearRun() {
@@ -336,6 +373,11 @@ export function serializeRun() {
   return {
     difficulty: run.difficulty,
     mapId: run.mapId,
+    mode: run.mode,
+    mods: [...run.mods],
+    challenge: run.challenge,
+    daily: run.daily,
+    carry: run.carry ? { ...run.carry } : null,
     souls: run.souls,
     lives: run.lives,
     wave: run.wave,
@@ -404,12 +446,19 @@ export function restoreRun(data) {
   const diff = DIFFICULTIES[data.difficulty];
   const mapDef = MAP_BY_ID[data.mapId];
   if (!diff || !mapDef) return false;
-  if (!isInt(data.wave) || data.wave < 0 || data.wave >= mapDef.waves.length) return false;
+  const m = cleanModeOptions(data); // eski kayıtlarda alan yok: bölüm oyunu
+  const lastWave = m.mode === 'endless' ? ENDLESS.maxWave : mapDef.waves.length;
+  if (!isInt(data.wave) || data.wave < 0 || data.wave >= lastWave) return false;
   const souls = isNum(data.souls) ? data.souls : data.gold; // eski kayıtlarda alan adı 'gold'
   if (!isNum(souls) || souls < 0) return false;
   if (!isInt(data.lives) || data.lives < 1) return false;
 
-  const run = newRun(diff.id, mapDef.id);
+  const run = newRun(diff.id, mapDef.id, m);
+  const c = data.carry;
+  if (m.mode === 'endless' && isObj(c) && isInt(c.waves) && c.waves > 0 && c.waves <= data.wave
+    && isInt(c.bosses) && c.bosses >= 0 && isInt(c.kills) && c.kills >= 0) {
+    run.carry = { waves: c.waves, bosses: c.bosses, kills: c.kills };
+  }
   run.souls = Math.floor(souls);
   // can üst sınırını kale yükseltmeleri belirler (game.js); burada yalnızca korunur
   run.lives = data.lives;
@@ -511,12 +560,17 @@ function createRecords() {
     seen: [],                // karşılaşılan düşman tipleri (rehber + keşif kartı)
     seenTowers: [],          // oyunda tanıtılmış kuleler (keşif kartı bir kez çıkar)
     seenSkills: [],          // oyunda tanıtılmış yetenekler
-    tips: [],                // görülen öğretici ipuçları (tips.js; TIPS kimlikleri + 'chapter-<bölüm>')
+    tips: [],                // görülen öğretici ipuçları (tips.js; TIPS kimlikleri + 'chapter-<bölüm>' + 'event-<olay>')
+    endless: perMap(),       // Sonsuz Gece: bölüm → zorluk → ulaşılan en yüksek dalga
+    daily: { last: '', streak: 0, best: 0, wins: 0 }, // Günün Sınavı: son kazanılan gün, seri, en uzun seri, zafer
+    challenges: [],          // tamamlanan sınavlar (CHALLENGES kimlikleri)
   };
 }
 
 const SEEN_LISTS = { enemy: 'seen', tower: 'seenTowers', skill: 'seenSkills', tip: 'tips' };
-const isTipId = (id) => TIPS.order.includes(id) || (id.startsWith('chapter-') && MAP_ORDER.includes(id.slice(8)));
+const isTipId = (id) => TIPS.order.includes(id)
+  || (id.startsWith('chapter-') && MAP_ORDER.includes(id.slice(8)))
+  || (id.startsWith('event-') && !!MAP_EVENTS[id.slice(6)]);
 const knownId = { enemy: (id) => !!ENEMIES[id], tower: (id) => !!TOWERS[id], skill: (id) => !!SKILLS[id], tip: isTipId };
 const cleanList = (list, kind) => (Array.isArray(list)
   ? [...new Set(list.filter((s) => typeof s === 'string' && knownId[kind](s)))]
@@ -546,6 +600,21 @@ export function applyRecords(raw) {
   fresh.kills = isInt(src.kills) && src.kills >= 0 ? src.kills : 0;
   fresh.runs = isInt(src.runs) && src.runs >= 0 ? src.runs : 0;
   for (const [kind, key] of Object.entries(SEEN_LISTS)) fresh[key] = cleanList(src[key], kind);
+  // — modlar (1.5.0) —
+  for (const mapId of MAP_ORDER) {
+    for (const id of DIFFICULTY_ORDER) {
+      const v = isObj(src.endless) && isObj(src.endless[mapId]) ? src.endless[mapId][id] : 0;
+      fresh.endless[mapId][id] = isInt(v) ? Math.min(Math.max(v, 0), ENDLESS.maxWave) : 0;
+    }
+  }
+  if (isObj(src.daily)) {
+    const d = src.daily;
+    fresh.daily.last = isDayKey(d.last) ? d.last : '';
+    for (const k of ['streak', 'best', 'wins']) fresh.daily[k] = isInt(d[k]) && d[k] >= 0 ? d[k] : 0;
+  }
+  fresh.challenges = Array.isArray(src.challenges)
+    ? [...new Set(src.challenges.filter((c) => typeof c === 'string' && CHALLENGE_BY_ID[c]))]
+    : [];
   Object.assign(state.records, fresh);
 }
 
@@ -630,21 +699,64 @@ export function applyProfile(raw) {
   state.profile = p;
 }
 
+/** İki 'YYYY-AA-GG' arasındaki gün farkı (b − a). */
+function dayGap(a, b) {
+  const t = (k) => Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10));
+  return Math.round((t(b) - t(a)) / 86400000);
+}
+
 /**
- * Biten oyunu rekorlara işler.
- * @returns {{reached:number, newBest:boolean}}
+ * Biten oyunu rekorlara işler. Bölüm rekoru ve zaferler yalnızca bölüm
+ * (campaign) oyunlarından gelir; modların kendi kayıtları var.
+ * @returns {{reached:number, newBest:boolean, firstWin:boolean, best:number,
+ *            dailyFirst:boolean, streak:number, challengeFirst:boolean}}
  */
 export function recordRunResult(victory) {
   const run = state.run;
   const rec = state.records;
+  const out = { reached: run.wave, newBest: false, firstWin: false, best: 0, dailyFirst: false, streak: 0, challengeFirst: false };
+  // zaferden sonra sürdürülen Sonsuz Gece: oyun ve önceki öldürmeler zaferde sayıldı
+  rec.kills += run.stats.kills - (run.carry ? run.carry.kills : 0);
+  if (!run.carry) rec.runs += 1;
+  if (run.mode === 'endless') {
+    // Sonsuz Gece bitince: ulaşılan dalga (son başlayan dalga) rekor olur
+    const table = rec.endless[run.mapId];
+    out.newBest = run.wave > table[run.difficulty];
+    if (out.newBest) table[run.difficulty] = run.wave;
+    out.best = table[run.difficulty];
+    return out;
+  }
+  if (run.mode === 'daily') {
+    if (victory) out.reached = state.map.waves.length;
+    const d = rec.daily;
+    if (victory && d.last !== run.daily) {
+      const gap = d.last ? dayGap(d.last, run.daily) : 99;
+      if (gap > 0) { // eski bir günün sınavı (gece yarısı geçti) seriyi geri saramaz
+        d.streak = gap === 1 ? d.streak + 1 : 1;
+        d.best = Math.max(d.best, d.streak);
+        d.last = run.daily;
+      }
+      d.wins += 1;
+      out.dailyFirst = true;
+    }
+    out.streak = d.streak;
+    return out;
+  }
+  if (run.mode === 'challenge') {
+    if (victory) out.reached = state.map.waves.length;
+    if (victory && !rec.challenges.includes(run.challenge)) {
+      rec.challenges.push(run.challenge);
+      out.challengeFirst = true;
+    }
+    return out;
+  }
   const best = rec.best[run.mapId];
   const wins = rec.wins[run.mapId];
-  const reached = victory ? state.map.waves.length : run.wave;
-  const firstWin = victory && DIFFICULTY_ORDER.every((id) => wins[id] === 0); // bölüm ilk kez kazanıldı
-  const newBest = reached > best[run.difficulty];
-  if (newBest) best[run.difficulty] = reached;
+  out.reached = victory ? state.map.waves.length : run.wave;
+  out.firstWin = victory && DIFFICULTY_ORDER.every((id) => wins[id] === 0); // bölüm ilk kez kazanıldı
+  out.newBest = out.reached > best[run.difficulty];
+  if (out.newBest) best[run.difficulty] = out.reached;
+  out.best = best[run.difficulty];
   if (victory) wins[run.difficulty] += 1;
-  rec.kills += run.stats.kills;
-  rec.runs += 1;
-  return { reached, newBest, firstWin };
+  return out;
 }

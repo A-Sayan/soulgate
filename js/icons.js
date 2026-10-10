@@ -50,4 +50,20 @@ export const ICON = Object.freeze({
   t_phase: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20.5V11a7 7 0 0 1 14 0v9.5l-2.4-1.8-2.3 1.8-2.3-1.8-2.3 1.8-2.3-1.8z"/><circle class="i-hi" cx="9.5" cy="11" r="1.4"/><circle class="i-hi" cx="14.5" cy="11" r="1.4"/></svg>',
   t_fireproof: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c3.6 3.2 6.5 6.6 6.5 10.6a6.5 6.5 0 0 1-13 0c0-2.6 1.3-4.6 3.2-6.4.2 2 .9 3.2 2.1 3.9-.3-3 .2-5.5 1.2-8.1z"/><path class="i-line i-cut" d="M4 4l16 16"/></svg>',
   t_blink: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8z"/><circle cx="18.5" cy="18.5" r="1.6"/><circle cx="5" cy="19.5" r="1.1"/></svg>',
+  // ---- Meydan Okumalar (1.5.0): mod kartları ve mühür ----
+  endless: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 3.2A8.8 8.8 0 1 0 20.8 15 7 7 0 0 1 15.5 3.2z"/><path class="i-hi" d="M18.3 4.4l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6zM21 9.6l.4.9.9.4-.9.4-.4.9-.4-.9-.9-.4.9-.4z"/></svg>',
+  daily: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path class="i-hi" d="M3.5 9.5h17"/><path class="i-line" d="M8 3v4M16 3v4"/><path class="i-hi" d="M12 11.6l1.2 2.4 2.6.4-1.9 1.8.5 2.6-2.4-1.3-2.4 1.3.5-2.6-1.9-1.8 2.6-.4z"/></svg>',
+  medal: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2.5h3.2l1.8 4.2 1.8-4.2H17l-2.8 6.4A6.5 6.5 0 1 1 9.8 8.9z"/><circle class="i-hi" cx="12" cy="15" r="3.6"/></svg>',
+  // ---- kurallar (config MODIFIERS; m_<kimlik>) ----
+  m_glass: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 4.3 2.4.7-1.2 2.1-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/><path class="i-line i-cut" d="M12.4 6.6l-2 4 3 2-2 4.4"/></svg>',
+  m_wrath: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C7 3 4 6.5 4 10.5c0 2.5 1.2 4.3 3 5.3V19h2v-2h2v2h2v-2h2v2h2v-3.2c1.8-1 3-2.8 3-5.3C20 6.5 17 3 12 3z"/><path class="i-hi" d="M7.2 8.4l3.6 1.6-.8 2.2zM16.8 8.4l-3.6 1.6.8 2.2z"/></svg>',
+  m_scarce: '<svg class="ico-soul" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3.5c3 2.7 5.4 5.5 5.4 8.8a5.4 5.4 0 0 1-10.8 0c0-2.2 1.1-3.8 2.7-5.3.2 1.6.7 2.7 1.7 3.2-.2-2.5.2-4.6 1-6.7z"/><path class="i-line" d="M15.5 18.5h6"/></svg>',
+  m_swift: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-line" d="M4 6l6 6-6 6M12 6l6 6-6 6"/></svg>',
+  m_armored: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l7.5 3v6c0 4.6-3.2 8.4-7.5 10-4.3-1.6-7.5-5.4-7.5-10v-6z"/><path class="i-hi" d="M8 9.5h8M8 13h8"/></svg>',
+  m_horde: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="9" r="2.6"/><circle cx="12" cy="7" r="2.6"/><circle cx="18" cy="9" r="2.6"/><path d="M2.5 18.5c.4-3 1.8-4.6 3.5-4.6s3.1 1.6 3.5 4.6zM8.5 17c.4-3.2 1.8-5 3.5-5s3.1 1.8 3.5 5zM14.5 18.5c.4-3 1.8-4.6 3.5-4.6s3.1 1.6 3.5 4.6z"/></svg>',
+  m_noskills: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><circle class="i-hi" cx="10" cy="10" r="2"/><path class="i-line i-cut" d="M4 4l16 16"/></svg>',
+  m_nosell: '<svg class="ico-coin" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path class="i-hi" d="M12 7.5v9"/><path class="i-line i-cut" d="M4 4l16 16"/></svg>',
+  m_nomastery: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6-4.5-4.1 6-.7z"/><path class="i-line i-cut" d="M4 4l16 16"/></svg>',
+  m_fog: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.8 14.5a4.3 4.3 0 0 1-.4-8.6 5.8 5.8 0 0 1 11.1-1 4.8 4.8 0 0 1-.3 9.6z"/><path class="i-line" d="M3.5 18h11M8 21h12"/></svg>',
+  m_storm: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.8 12.5a4.3 4.3 0 0 1-.4-8.6 5.8 5.8 0 0 1 11.1-1 4.8 4.8 0 0 1-.3 9.6z"/><path class="i-hi" d="M12.6 10.5L9 16h2.6l-1.2 5.5L15 15h-2.7z"/></svg>',
 });

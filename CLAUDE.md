@@ -7,13 +7,15 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
 
 - **Oyun:** Soulgate: Tower Defense. Karanlık fantastik, dikey (portrait), mobil öncelikli kule savunma.
   1.2.0'dan beri bilgisayarda da oynanır (her pencere boyutu, fare + klavye); 1.3.0'dan beri bilgisayar ve yatay
-  tablette ayrı, tam ekran "geniş düzen" var (bkz. bölüm 5 "Sahne, geniş düzen ve bilgisayar").
+  tablette ayrı, tam ekran "geniş düzen" var (bkz. bölüm 5 "Sahne, geniş düzen ve bilgisayar"). 1.5.0: Meydan
+  Okumalar (Sonsuz Gece, Günün Sınavı, Sınavlar), harita olayları, Kâbus'a özgü mekanikler. Bu "büyük güncelleme
+  1/2"dir; kullanıcı 2/2'yi isteyecek, o bitince sürüm **2.0.0** olacak.
 - **Künye:** Yayıncı Sayk Studio · Geliştirici A. Sayan · Yardımcı geliştirici S. Soytürk.
 - **Kullanıcı kodcu değil.** Her zaman Türkçe, sade dille konuş. Teknik terim yerine ne değiştiğini ve
   oyuncunun ne göreceğini anlat. Kodu kendisi telefonda Spck Editor ile açar ve önizler.
 - **Teslim alışkanlığı:** iş bitince kısa Türkçe özet, değişen dosyaların listesi, gerekiyorsa
   dosyalar (APK, zip) sohbete gönderilir. Uzun teknik anlatı yok.
-- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.4.0**). APK sürümü de buradan okunur.
+- **Sürüm:** `js/config.js` → `GAME.version` (şu an **1.5.0**). APK sürümü de buradan okunur.
 
 ## 2. Yayın kanalları (hepsi canlı)
 
@@ -21,7 +23,7 @@ Bu dosya projenin kalıcı hafızasıdır. Yeni bir sohbette önce bunu oku. Bir
 |---|---|---|
 | GitHub deposu | `A-Sayan/soulgate` (public), dal `main` | push |
 | Tarayıcı sürümü | https://a-sayan.github.io/soulgate/ | `main`'e push → `.github/workflows/pages.yml` kendiliğinden yayımlar |
-| APK + web paketi | GitHub Releases (`v1.4.0` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
+| APK + web paketi | GitHub Releases (`v1.5.0` yayında) | `.github/workflows/release.yml` (elle tetikleme ya da `v*` etiketi) |
 | itch.io | Kullanıcının sayfası (kuruldu) | Kullanıcı elle yükler: Release'teki `Soulgate-x.y.z-web.zip` + `Soulgate-x.y.z.apk` |
 
 **Erişim:** Claude oturumları kullanıcının `m-Salih38` GitHub bağlantısıyla çalışır. `m-Salih38`, `A-Sayan/soulgate`
@@ -74,6 +76,9 @@ güncellenemez ve oyuncunun ilerlemesi silinir.
 - Onay için yalnızca özel pencere (`modal.js`). `alert/confirm/prompt` yok.
 - Yeni bir mekanik ya da ekran oyuncuya anlatılmalıysa öğreticiye ipucu ekle (bkz. bölüm 5 "Öğretici"); ipucu oyunu
   durdurmaz, anlattığı iş yapılınca `tips.complete(id)` ile kapanır.
+- Yıldızlar, bölüm açılması ve bölüm rekorları YALNIZCA bölüm (campaign) oyunlarından gelir. Meydan Okumalarda
+  yenilgi kaleyi yıkmaz. Harita olayları dengeyi bozmamalı: her olayın iyi ve kötü yanı var; Kolay/Normal'de
+  botla eskisine yakın kalmalı (bkz. bölüm 8).
 - Ayarlar ve kayıtlar anında uygulanır/yazılır.
 - TODO ya da yarım özellik bırakılmaz.
 - Bir modül değişecekse yalnızca o modül ve ona doğrudan bağlı olanlar değişir.
@@ -180,6 +185,41 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
   tam ekrandan çıkınca oyun duraklar (`menu.js onFullscreenChange`); itch'in çerçeve tam ekranı için `main.js
   pauseOnShrink` (fareli cihazda pencere alanı %20'den çok küçülünce oyun duraklar).
 
+**Meydan Okumalar, kurallar, harita olayları, Kâbus (1.5.0)**
+
+- Oyun modu `run.mode`: `campaign` | `endless` (Sonsuz Gece) | `daily` (Günün Sınavı) | `challenge` (Sınav); kurallar
+  `run.mods` (config `MODIFIERS`), `run.challenge`, `run.daily` (yerel tarih 'YYYY-AA-GG'), `run.carry` (bölüm zaferinden
+  sonra Sonsuz Gece'ye devam edilirse zaferde işlenmiş { waves, bosses, kills }). Hepsi kayda girer (`serializeRun`).
+  `game.newGame(zorluk, bölüm, { mode, mods, challenge, daily })`; `state.hasMod(id)`.
+- Sonsuz Gece: `game.js waveDef(n)`: n ≤ 30 bölümün dalgası, sonrası `makeEndlessWave` (11–29 döner, her 10. dalga
+  bölümün 10/20/30. patronu, tam güç). `totalWaves()` = Infinity (HUD "/∞"). Can ayrıca `ENDLESS.hpGrowth` bileşik,
+  sayı `countGrowth`, seçkin payı `elitePerWave` artar. `continueEndless()`: zafer ekranındaki "Sonsuza devam et"
+  (`EV.RUN_CONTINUE`). Rekor `records.endless[bölüm][zorluk]`.
+- Kurallar nerede uygulanır (game.js): scarce → `soulMult()` (öldürme, dalga bonusu, erken çağrı); swift/armored →
+  `spawnEnemy`; horde → `startWave`; glass/noskills → `setupKeep`; nosell → `canSell` (o hazırlıkta kurulan geri
+  alınabilir); nomastery → `upgradeOptions` null; fog → `applyTowerAuras` (bRange'e eklenir, `liveStats`); storm →
+  `eventRate`; wrath → patron.
+- Günün Sınavı: `meta.dailyChallenge(tarih)` (kazanılmış bölümlerden + `DAILY_POOL`'dan 2 kural, `createRng(hashString)`
+  ile tarihe göre sabit). İlk zafer `DAILY.bonus × bölüm ödülü`; seri `records.daily { last, streak, best, wins }`.
+- Sınavlar: `config CHALLENGES` (10 tane, bölüm başına 2; bölüm kazanılınca açılır), `records.challenges`; ilk
+  tamamlamada `reward` altın. Ödüller `meta.runReward(zafer, stats, res)` (`parts.bonus`); `settleRun` yalnızca bölüm
+  yenilgisinde kaleyi yıkar.
+- Harita olayları (`config MAP_EVENTS`, bölümün `event`'i): rise (Kül Vadisi mezarı, 5. dalgadan), blizzard (tipi:
+  `run.chill` + düşman yavaşlığı), gas, lava (lav süslerinden), rift. Yalnızca savaş sürerken, `run.eventT` sayacıyla;
+  uyarı (`warn` sn) sonra etki; `run.effects` içinde `ev_*` (kayda girmez). Zorluk `events: { rate, power }`.
+  `EV.MAP_EVENT (olay, 'warn'|'act'|'hit'|'end', x, y, değer)` → particles, audio, ui (kısa mesaj), tips (`event-<olay>`).
+  render `drawEvRise/Gas/Lava/Rift` + uyarı halkası `warnRing`.
+- Kâbus: `DIFFICULTIES.hard` → `elites` (seçkin olasılığı, `ELITE`: can ×1.6, ruh ×2, ayakta altın halka), `wrath`
+  (`BOSS_WRATH`: can ×1.12, `roar` kuleleri susturur `EV.BOSS_ABILITY 'roar'`, yarı canda `raged` hızlanır),
+  olaylar sık ve sert. `hp` 1.18 → 1.12, ödül 1.6 → 1.9.
+- Menü: ana menüde Yeni Oyun'un altında `data-act="modes"` → `modes` ekranı (Sonsuz Gece kartı → bölüm seçimi
+  `chaptersFor='endless'`; Günün Sınavı; Sınavlar listesi). Savaş öncesi ekranı `pending` modunu tutar: daily/challenge'da
+  zorluk kartları yerine kurallar kartı (`rulesCard`), bütün modlarda bölümün harita olayı kutusu. Duraklatmada mod
+  ve kural çipleri; sonuç ekranı moda göre (Sonsuz Gece: "Gece Sona Erdi"). Simgeler `icons.js endless/daily/medal/m_*`.
+- Yeni ipuçları: `event-<olay>`, `elite`, `wrath`, `endless` (dalga bitince kendiliğinden kapanır), `modes` (ana menü).
+- Bot ve araçlar: `dev/sim.mjs runBot({ ..., opt })`, `dev/endless.mjs` (Sonsuz Gece'de botun ulaştığı dalga),
+  `dev/modes.py` (tarayıcı testi).
+
 **Önemli mekanikler**
 
 - Döngü sabit adım `1/60`; hız `[1, 2, 3, 0]` adım sayısını çarpar.
@@ -196,13 +236,14 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
   dalga bonusu 20 + 4×dalga. Patronların yürüdüğü yol (dev/economy.mjs) eskisiyle aynı tutuldu.
 - Bölüm çarpanları: can 1 / 1.05 / 1.1 / 1.25 / 1.2, sıradan düşman (`horde`) 1.08 / 1.04 / 0.97 / 1 / 0.95,
   ruh 1 / 1 / 1 / 1 / 1.12, ödül 1 / 1.25 / 1.5 / 1.75 / 2.
-- Zorluk: easy (30 can, 250 ruh, can ×0.78, ruh ×1.08, altın ×0.7), normal (20, 200, ×1.0, ×1.0, ×1.0),
-  hard (12, 180, ×1.18, ruh ×1.0, altın ×1.6).
+- Zorluk: easy (30 can, 250 ruh, can ×0.78, ruh ×1.08, altın ×0.7, olay sıklığı ×0.75), normal (20, 200, ×1.0, ×1.0,
+  ×1.0, olay ×1), hard / Kâbus (12, 180, can ×1.12, ruh ×1.0, altın ×1.9, olay ×1.6 ve sertlik ×1.35, seçkin %12,
+  öfkeli patronlar).
 - Açılma: bölüm n+1, bölüm n herhangi bir zorlukta kazanılınca açılır. Kazanılan her zorluk bir yıldız (toplam 15).
   Çarşı ürünleri bölümün `unlocks` listesiyle açılır. Rekorlar bölüm × zorluk bazında; eski biçimden geçiş var.
 - Savaştan önce en çok 6 kule seçilir (`LOADOUT_SIZE`).
 
-## 6. İçerik (1.4.0)
+## 6. İçerik (1.5.0)
 
 **Bölümler** (her biri 30 dalga; 10/20/30 patron):
 1. `kul-vadisi` Kül Vadisi (tek yol). 2. `ayaz-gecidi` Ayaz Geçidi (açar: lance, prism, thunder, timestop).
@@ -210,6 +251,15 @@ Katmanlar (alttan üste; bir modül yalnızca alt katmanları import eder):
 4. `kor-ocaklari` Kor Ocakları (açar: hunter, bell, vortex, reaper). 5. `bosluk-tahti` Boşluk Tahtı (iki kapı).
 Tehditler: 1 zırh + yenilenme · 2 zırh + hızlı + uçan · 3 yenilenme + bölünen + kaybolan · 4 yanmaz + zırh + uçan ·
 5 zırh + büyü direnci + ışınlanan.
+Harita olayları: 1 Ölüler Uyanıyor (rise) · 2 Tipi (blizzard) · 3 Bataklık Gazı (gas) · 4 Lav Sıçraması (lava) ·
+5 Boşluk Yarığı (rift).
+
+**Kurallar (11):** glass Cam Kale, wrath Öfkeli Patronlar, scarce Kıt Ruh, swift Hızlı Ölüler, armored Demir Ordu,
+horde Kalabalık, noskills Sessiz Burçlar, nosell Satış Yok, nomastery Ustasız, fog Sis, storm Olay Fırtınası.
+
+**Sınavlar (10):** Kül Vadisi: glass-ash Cam Kale, iron-ash Demir Yürüyüş · Ayaz: wrath-frost Buzul Öfkesi,
+silent-frost Sessiz Geçit · Bataklık: horde-mire Çürük Sürü, fog-mire Sisli Bataklık · Kor: storm-forge Lav
+Fırtınası, scarce-forge Kıtlık Ocağı · Boşluk: night-void Gecenin Sonu (Kâbus), glass-void Cam Taht.
 
 **Kuleler (12):** archer Okçu Kulesi, mortar Ateş Havanı (başlangıçta açık), frost Ayaz Obeliski 150,
 poison Veba Kazanı 260, tesla Fırtına Kulesi 420, curse Lanet Totemi 560, lance Mızrak Atar 380,
@@ -248,8 +298,10 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
 - Tarayıcı testleri: depo kökünde `python3 -m http.server 8765 --bind 127.0.0.1`, sonra `python3 dev/e2e.py all`
   (telefon) ve `python3 dev/desktop.py` (bilgisayar: 8 pencere boyutu, fare + klavye; "SONUÇ: BAŞARILI" yazmalı).
   Konsolda hata olmamalı. Ekran görüntülerine bakarak kontrol et (desktop.py 9 boyut: geniş, alçak, dev, ultra geniş).
-  Ayrıca `python3 dev/e2e2.py` (zafer, rehber, paneller) ve `python3 dev/tips.py` (öğretici sırası, kule elde kalma,
-  tehdit etiketleri, geri bildirim, Rehberlik ayarları; bilgisayar + telefon; "SONUÇ: BAŞARILI").
+  Ayrıca `python3 dev/e2e2.py` (zafer, rehber, paneller), `python3 dev/tips.py` (öğretici sırası, kule elde kalma,
+  tehdit etiketleri, geri bildirim, Rehberlik ayarları) ve `python3 dev/modes.py` (Meydan Okumalar, Sonsuz Gece,
+  sonsuza devam, harita olayları, Kâbus; bilgisayar + telefon; hepsi "SONUÇ: BAŞARILI").
+- Sonsuz Gece eğrisi: `node dev/endless.mjs all normal full` (botun ulaştığı dalga).
 - Denge: `node dev/balance.mjs all easy,normal,hard full,mid` (iki kez çalıştır, sonuçlar rastgelelik içerir);
   yeni oyuncu: `node dev/balance.mjs kul-vadisi,ayaz-gecidi easy,normal,hard start starter`.
   Ekonomi ve patron hissi: `node dev/economy.mjs all easy,normal,hard full classic` (ruh kaynakları, harita doluluğu,
@@ -258,13 +310,19 @@ boss_phoenix Kül Ankası, boss_herald Boşluk Habercisi, boss_void Kadim Boşlu
   hard: 1/2/4 çoğunlukla kazanılır, 3 ve 5 zorlanır. Orta profil easy'yi kazanır, normal'de 1. bölümü kazanır,
   sonrasında zorlanır. 1.1.0'a göre: oyun başına ruh ~%10 az, sıradan dalgada kaybedilen can 2-3 kat,
   patronların yürüdüğü yol aynı (±2 puan). Bot zayıf bir oyuncudur (12 kuleyi en üste çıkarmadan yenisini kurmaz).
+- 1.5.0 (harita olayları + yeni Kâbus), 4 plan × 3 tekrar: Normal'de tam ve orta profil 1.4.0 ile aynı sınırda (orta,
+  Kül Vadisi 9/12, eskiden 11/12; "start" profili değişmedi). Kâbus tam profil: Kül 12/12, Ayaz ~6–9/12, Bataklık
+  ~4/12, Kor ~4/12, Boşluk ~4/12 (1.4.0: 12, 8, 5, 7, 3) — bilerek daha zor, ödülü daha yüksek. Sonsuz Gece (normal,
+  tam profil): bot dalga ~45–63'e dayanır (ort. ~52). Sınavlar (tam profil, 4 plan): Cam Kale ve Demir Yürüyüş 4/4,
+  çoğu 2–3/4, Gecenin Sonu ve Cam Taht 1/4, Sessiz Geçit ~1/4 (bot yeteneksiz zorlanır; insan kule seçimini uyarlar).
 - APK Claude tarafından cihazda çalıştırılamaz. Kullanıcının telefonunda denemesini iste
   (ses, geri tuşu, kapatıp açınca kayıt).
 
 ## 9. Açık konular
 
-- 1.2.1 APK kullanıcının telefonunda denendi: ses açma/kapama, geri tuşu ve diğerleri sorunsuz. 1.4.0'ın denemesi
-  bekleniyor (öğretici telefonda, geri bildirim bağlantısının tarayıcıda açılması).
+- 1.2.1 APK kullanıcının telefonunda denendi: ses açma/kapama, geri tuşu ve diğerleri sorunsuz. 1.5.0'ın denemesi
+  bekleniyor (Meydan Okumalar, harita olayları, Kâbus hissi).
+- Büyük güncellemenin 2/2'si bekleniyor; o bitince sürüm 2.0.0.
 - itch.io gömülü pencere boyutu kullanıcıda; oyun her boyutta açılır, dikey (ör. 540×960) ya da tam ekran düğmesi en iyisi.
 - Lisans ekranındaki bir madde (`strings.about.terms`, iki dilde) yazı tiplerinin "Google Fonts'tan yüklendiğini" söylüyor;
   oysa oyunla birlikte geliyorlar. Kullanıcıya söylendi, onayı olmadan değiştirilmedi.

@@ -10,9 +10,14 @@
  *               input, modal (4).
  *
  *  EKRANLAR (aynı anda yalnızca biri görünür)
- *   main · chapters · difficulty · pause · settings · guide · market · info · about · end
+ *   main · chapters · difficulty · modes · pause · settings · guide · market · info · about · end
  *   Yeni Oyun → bölüm seçimi (chapters) → zorluk ve oyuna götürülecek
  *   kuleler (difficulty) → savaş. Kilitli bölüm, önceki kazanılınca açılır.
+ *   Meydan Okumalar (modes, 1.5.0): Sonsuz Gece (→ bölüm seçimi, yalnızca
+ *   kazanılmış bölümler → zorluk), Günün Sınavı ve Sınavlar (→ savaş öncesi
+ *   ekranı: kurallar + kule seçimi). Savaş öncesi ekranı (difficulty) hangi mod
+ *   için açıldığını "pending"de tutar; geri tuşu da ona göre döner. Bölüm
+ *   zaferinin sonuç ekranında "Sonsuza devam et" aynı savaşı Sonsuz Gece yapar.
  *   Ana menünün altındaki söz (GAME.taglines) birkaç saniyede bir rastgele
  *   bir başkasına geçer; ana menü görünmezken saat durur.
  *   Bilgi ekranı (info) bir kulenin, düşmanın ya da yeteneğin bütün
@@ -43,6 +48,7 @@ import {
   GAME, STRINGS, DIFFICULTIES, DIFFICULTY_ORDER, DEFAULT_DIFFICULTY, SETTINGS_SCHEMA, SETTINGS_GROUPS,
   TOWERS, TOWER_ORDER, ENEMIES, DAMAGE_TYPES, META, CASTLE, CASTLE_UPGRADE_ORDER,
   SKILLS, SKILL_ORDER, SIDES, STAT_LABELS, MAPS, MAP_BY_ID, MAP_ORDER, WAVE_COUNT, LOADOUT_SIZE,
+  MODIFIERS, CHALLENGES, CHALLENGE_BY_ID, MAP_EVENTS,
 } from './config.js';
 import { formatInt, formatValue, template } from './utils.js';
 import { EV, on, emit } from './events.js';
@@ -68,6 +74,7 @@ const RESET = section('settings.reset');
 const KEYS = section('settings.keys');
 const SET = section('settings');
 const THREAT = section('threats');
+const MODE = section('modes');
 
 const COPYRIGHT = `© ${GAME.year} ${GAME.studio}`;
 
@@ -83,6 +90,9 @@ let current = null;          // görünen ekranın adı (yoksa null)
 let settingsReturn = 'main'; // ayarlardan geri dönülecek ekran
 let chosenDiff = DEFAULT_DIFFICULTY;
 let chosenMap = MAP_ORDER[0];  // bölüm seçiminde seçilen bölüm
+// savaş öncesi ekranının modu (Meydan Okumalar): { mode, mods, challenge, daily }
+let pending = { mode: 'campaign', mods: [], challenge: '', daily: '' };
+let chaptersFor = 'campaign';  // bölüm seçimi hangi mod için açıldı: 'campaign' | 'endless'
 let guideTab = 'towers';
 let aboutReturn = 'main';    // lisans ekranından geri dönülecek ekran
 let licenseState = 'idle';   // 'idle' | 'loading' | 'ready'
@@ -201,6 +211,7 @@ function relocalize() {
   else if (cur === 'guide') renderGuide();
   else if (cur === 'market') renderMarket();
   else if (cur === 'info') renderInfo();
+  else if (cur === 'modes') renderModes();
   if (state.run && !state.run.over) renderSummary(); // ayarlardan duraklatmaya dönülecek
   if (cur === 'end' && lastEnd) renderEnd(...lastEnd);
   else show(cur);
@@ -226,6 +237,7 @@ function layout() {
       <nav class="menu-actions">
         <button type="button" class="menu-btn primary" data-act="continue">${STRINGS.menu.continue}</button>
         <button type="button" class="menu-btn" data-act="new">${STRINGS.menu.newGame}</button>
+        <button type="button" class="menu-btn modes-btn" data-act="modes">${ICON.medal}<span>${MODE.title}</span></button>
         <button type="button" class="menu-btn market-btn" data-act="market">${ICON.coin}${STRINGS.menu.market}</button>
         <div class="menu-row">
           <button type="button" class="menu-btn small" data-act="guide">${STRINGS.menu.guide}</button>
@@ -245,7 +257,7 @@ function layout() {
   </section>
 
   <section class="screen screen-sheet" data-screen="chapters" aria-label="${TXT.chapters}">
-    <header class="sheet-head">${backBtn()}<h2>${TXT.chapters}</h2><span class="star-chip" data-ref="starChip"></span></header>
+    <header class="sheet-head">${backBtn()}<h2 data-ref="chaptersTitle">${TXT.chapters}</h2><span class="star-chip" data-ref="starChip"></span></header>
     <div class="chapter-list" data-ref="chapterList"></div>
   </section>
 
@@ -265,10 +277,16 @@ function layout() {
     <button type="button" class="menu-btn primary block" data-act="start">${STRINGS.difficulty.start}</button>
   </section>
 
+  <section class="screen screen-sheet" data-screen="modes" aria-label="${MODE.title}">
+    <header class="sheet-head">${backBtn()}<h2>${MODE.title}</h2><span class="star-chip medal-chip" data-ref="medalChip"></span></header>
+    <div class="modes-body" data-ref="modesBody"></div>
+  </section>
+
   <section class="screen screen-card" data-screen="pause" aria-label="${STRINGS.pause.title}">
     <div class="card">
       <h2 class="card-title">${STRINGS.pause.title}</h2>
       <div class="run-summary" data-ref="runSummary"></div>
+      <div class="run-mods" data-ref="runMods" hidden></div>
       <div class="card-actions">
         <button type="button" class="menu-btn primary" data-act="resume">${STRINGS.pause.resume}</button>
         <button type="button" class="menu-btn" data-act="settings">${STRINGS.pause.settings}</button>
@@ -339,7 +357,8 @@ function layout() {
       <div class="end-reward" data-ref="endReward"></div>
       <div class="end-ruin" data-ref="endRuin" hidden></div>
       <div class="card-actions">
-        <button type="button" class="menu-btn primary" data-act="retry">${STRINGS.end.retry}</button>
+        <button type="button" class="menu-btn primary" data-act="continueEndless" data-ref="endlessBtn" hidden>${ICON.endless}<span>${MODE.continueEndless}</span></button>
+        <button type="button" class="menu-btn primary" data-act="retry" data-ref="retryBtn">${STRINGS.end.retry}</button>
         <button type="button" class="menu-btn quiet" data-act="endMenu">${STRINGS.end.menu}</button>
       </div>
     </div>
@@ -505,13 +524,28 @@ export function handleBack() {
       closeInfo();
       return true;
     case 'difficulty':
-      renderChapters();
-      show('chapters');
+      if (pending.mode === 'daily' || pending.mode === 'challenge') {
+        renderModes();
+        show('modes');
+      } else {
+        renderChapters();
+        show('chapters');
+      }
       play('ui_close');
       return true;
     case 'chapters':
+      if (chaptersFor === 'endless') {
+        renderModes();
+        show('modes');
+      } else {
+        show('main');
+      }
+      play('ui_close');
+      return true;
+    case 'modes':
     case 'guide':
       show('main');
+      refreshMain();
       play('ui_close');
       return true;
     case 'market':
@@ -541,14 +575,19 @@ function onClick(e) {
   const btn = e.target.closest('[data-act]');
   if (!btn || btn.disabled) return;
   const act = btn.dataset.act;
-  const quiet = ['tab', 'diff', 'shopTab', 'equip', 'filter', 'hideOwned', 'loadout', 'chapter'];
+  const quiet = ['tab', 'diff', 'shopTab', 'equip', 'filter', 'hideOwned', 'loadout', 'chapter', 'challenge'];
   if (!quiet.includes(act)) {
     play('ui_tap');
     haptic('tap');
   }
   switch (act) {
     case 'continue': continueRun(); break;
-    case 'new': openChapters(); break;
+    case 'new': openChapters('campaign'); break;
+    case 'modes': openModes(); break;
+    case 'endless': openChapters('endless'); break;
+    case 'daily': chooseDaily(); break;
+    case 'challenge': chooseChallenge(btn.dataset.id); break;
+    case 'continueEndless': continueEndless(); break;
     case 'chapter': chooseChapter(btn.dataset.id); break;
     case 'loadout': toggleTower(btn, btn.dataset.id); break;
     case 'guide': renderGuide(); show('guide'); break;
@@ -638,16 +677,22 @@ async function startNew() {
     if (!ok) return;
   }
   save.clearRun();
-  game.newGame(chosenDiff, chosenMap);
+  game.newGame(chosenDiff, chosenMap, { ...pending, mods: [...pending.mods] });
   enterGame();
+}
+
+/** Süren (ya da biten) oyunun mod seçenekleri: yeniden başlatma aynı modla olur. */
+function modeOf(run) {
+  return { mode: run.mode, mods: [...run.mods], challenge: run.challenge, daily: run.daily };
 }
 
 async function restartRun() {
   const ok = await confirm({ title: STRINGS.confirm.restartTitle, text: STRINGS.confirm.restart, danger: true });
   if (!ok || !state.run) return;
   const { difficulty, mapId } = state.run;
+  const opt = modeOf(state.run);
   save.clearRun();
-  game.newGame(difficulty, mapId);
+  game.newGame(difficulty, mapId, opt);
   enterGame();
 }
 
@@ -665,8 +710,16 @@ async function leaveToMenu() {
 function retryRun() {
   const diff = state.run ? state.run.difficulty : chosenDiff;
   const mapId = state.run ? state.run.mapId : chosenMap;
-  game.newGame(diff, mapId);
+  game.newGame(diff, mapId, state.run ? modeOf(state.run) : pending);
   enterGame();
+}
+
+/** Bölüm zaferinden sonra: aynı savaş Sonsuz Gece olarak sürer. */
+function continueEndless() {
+  if (!game.continueEndless()) return;
+  lastEnd = null;
+  hide();
+  play('ui_open');
 }
 
 function endToMenu() {
@@ -682,7 +735,7 @@ function onRunEnd(victory, stats) {
   res.unlocked = before < MAPS.length && MAPS.filter((m) => meta.chapterUnlocked(m.id)).length > before ? MAPS[before] : null;
   save.saveRecords(state.records);
   save.clearRun();
-  const reward = meta.settleRun(victory, stats); // altın + yenilgide yıkık kale (profil kaydedilir)
+  const reward = meta.settleRun(victory, stats, res); // altın + bölüm yenilgisinde yıkık kale (profil kaydedilir)
   // sonuç ekranı, son vuruşun sarsıntısı ve sesi duyulduktan sonra gelir
   setTimeout(() => renderEnd(victory, stats, res, reward), victory ? 1400 : 1100);
 }
@@ -941,15 +994,20 @@ function refreshMain() {
   if (hasSave) {
     const diff = DIFFICULTIES[data.difficulty];
     const ch = MAP_BY_ID[data.mapId];
-    const where = data.wave > 0 ? `${STRINGS.menu.wave} ${data.wave}/${WAVE_COUNT}` : TXT.beforeFirst;
-    info.textContent = `${TXT.saved}: ${ch ? `${ch.name}, ` : ''}${where}, ${diff ? diff.name : ''}`;
+    const endless = data.mode === 'endless';
+    const where = data.wave > 0 ? `${STRINGS.menu.wave} ${data.wave}${endless ? '' : `/${WAVE_COUNT}`}` : TXT.beforeFirst;
+    const mode = data.mode && data.mode !== 'campaign' && MODE[data.mode] ? `${MODE[data.mode].name} · ` : '';
+    info.textContent = `${TXT.saved}: ${mode}${ch ? `${ch.name}, ` : ''}${where}, ${diff ? diff.name : ''}`;
     info.hidden = false;
   } else {
     info.hidden = true;
   }
   ref('storageWarn').hidden = save.isPersistent();
   refreshGold();
-  if (meta.gold() > 0 && state.records.runs > 0) tips.trigger('market', { screen: 'main', target: '.screen-main [data-act="market"]' });
+  // ana menü ipuçları kartı düğmelerin üstüne (logonun önüne) koyar: hiçbir menü düğmesini örtmez
+  if (meta.gold() > 0 && state.records.runs > 0) tips.trigger('market', { screen: 'main', target: '.screen-main [data-act="market"]', side: 'above' });
+  if (meta.modesUnlocked()) tips.trigger('modes', { screen: 'main', target: '.screen-main [data-act="modes"]', side: 'above' });
+  root.querySelector('.screen-main [data-act="modes"]').classList.toggle('dim', !meta.modesUnlocked());
   ref('ruinNote').hidden = !meta.isRuined();
   ref('ruinPrice').textContent = formatInt(meta.repairPrice());
   // bölüm ilerlemesi: her bölüm bir mühür, altında yıldızları
@@ -967,9 +1025,17 @@ function starRow(n, max = 3) {
   return `<span class="stars" aria-hidden="true">${Array.from({ length: max }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>`;
 }
 
-/* — Bölüm seçimi — */
-function openChapters() {
-  if (!meta.chapterUnlocked(chosenMap)) chosenMap = meta.latestChapter().id;
+/* — Bölüm seçimi (bölüm oyunu ya da Sonsuz Gece) — */
+/** Bu bölüm seçilebilir mi? Sonsuz Gece yalnızca kazanılmış bölümlerde. */
+const chapterOpen = (id) => (chaptersFor === 'endless' ? meta.endlessUnlocked(id) : meta.chapterUnlocked(id));
+
+function openChapters(mode = 'campaign') {
+  chaptersFor = mode;
+  pending = { mode, mods: [], challenge: '', daily: '' };
+  if (!chapterOpen(chosenMap)) {
+    const open = MAPS.filter((m) => chapterOpen(m.id));
+    chosenMap = open.length ? open[open.length - 1].id : meta.latestChapter().id;
+  }
   renderChapters();
   show('chapters');
   play('ui_open');
@@ -977,10 +1043,12 @@ function openChapters() {
 
 function renderChapters() {
   const list = ref('chapterList');
+  const endless = chaptersFor === 'endless';
+  ref('chaptersTitle').textContent = endless ? MODE.endless.name : TXT.chapters;
   ref('starChip').innerHTML = `<i class="star"></i>${meta.totalStars()}<small>/${meta.maxStars()}</small>`;
   list.innerHTML = '';
   for (const m of MAPS) {
-    const open = meta.chapterUnlocked(m.id);
+    const open = chapterOpen(m.id);
     const stars = meta.chapterStars(m.id);
     const card = document.createElement('button');
     card.type = 'button';
@@ -992,9 +1060,15 @@ function renderChapters() {
     const best = DIFFICULTY_ORDER.map((d) => state.records.best[m.id][d]);
     const bestTop = Math.max(...best);
     const prev = MAPS[m.index - 1];
-    const line = open
-      ? (bestTop > 0 ? template(TXT.bestWave, { n: bestTop }) : TXT.never)
-      : template(TXT.lockedBy, { name: prev ? prev.name : '' });
+    let line;
+    if (endless) {
+      const eb = Math.max(...DIFFICULTY_ORDER.map((d) => meta.endlessBest(m.id, d)));
+      line = !open ? MODE.endlessLocked : eb > 0 ? template(TXT.bestWave, { n: eb }) : TXT.never;
+    } else {
+      line = open
+        ? (bestTop > 0 ? template(TXT.bestWave, { n: bestTop }) : TXT.never)
+        : template(TXT.lockedBy, { name: prev ? prev.name : '' });
+    }
     card.innerHTML = `<span class="chapter-thumb"></span>
       <span class="chapter-body">
         <small class="chapter-kicker">${template(TXT.chapter, { n: m.index + 1 })}</small>
@@ -1034,7 +1108,7 @@ function chapterThumb(id) {
 
 function chooseChapter(id) {
   if (!MAP_BY_ID[id]) return;
-  if (!meta.chapterUnlocked(id)) {
+  if (!chapterOpen(id)) {
     play('ui_deny');
     const card = ref('chapterList').querySelector(`[data-id="${id}"]`);
     if (card) pop(card, 'shake');
@@ -1047,18 +1121,35 @@ function chooseChapter(id) {
   show('difficulty');
 }
 
+/**
+ * Savaş öncesi ekranı: bölüm kutusu (tanım, asıl tehdit, harita olayı) +
+ * bölüm/Sonsuz Gece'de zorluk kartları, Günün Sınavı/Sınav'da kurallar kartı +
+ * oyuna götürülecek kuleler.
+ */
 function renderDifficulties() {
   const rec = state.records;
   const m = MAP_BY_ID[chosenMap];
+  const mode = pending.mode;
+  const ev = MAP_EVENTS[m.event];
   ref('diffTitle').textContent = m.name;
-  ref('diffChapter').innerHTML = `<small>${template(TXT.chapter, { n: m.index + 1 })}</small><p>${m.desc}</p>
+  let kicker = template(TXT.chapter, { n: m.index + 1 });
+  if (mode === 'endless') kicker = `${MODE.endless.name} · ${kicker}`;
+  else if (mode === 'daily') kicker = `${MODE.daily.name} · ${dayLabel(pending.daily)}`;
+  else if (mode === 'challenge') kicker = `${template(MODE.challengeKicker, { name: CHALLENGE_BY_ID[pending.challenge].name })} · ${kicker}`;
+  ref('diffChapter').innerHTML = `<small>${kicker}</small><p>${mode === 'endless' ? MODE.endless.desc : m.desc}</p>
     <div class="diff-threat"><b>${TXT.threat}</b>${threatChips(m)}<p>${m.threat}</p></div>
+    ${ev ? `<div class="diff-event"><b>${MODE.event}: ${ev.name}</b><p>${ev.desc}</p></div>` : ''}
     <span class="diff-facts"><span class="reward">${template(TXT.chapterReward, { m: formatValue(m.reward, 'dec1') })}</span>${m.paths.length > 1 ? `<span>${TXT.twoGates}</span>` : ''}</span>`;
   ref('diffChapter').style.setProperty('--accent', m.theme.accent);
+  if (mode === 'daily' || mode === 'challenge') {
+    ref('diffList').innerHTML = rulesCard();
+    renderLoadout();
+    return;
+  }
   ref('diffList').innerHTML = DIFFICULTY_ORDER.map((id) => {
     const d = DIFFICULTIES[id];
-    const best = rec.best[m.id][id];
-    const wins = rec.wins[m.id][id];
+    const best = mode === 'endless' ? meta.endlessBest(m.id, id) : rec.best[m.id][id];
+    const wins = mode === 'endless' ? 0 : rec.wins[m.id][id];
     const recLine = best > 0
       ? `${template(TXT.bestWave, { n: best })}${wins > 0 ? `, ${template(TXT.wins, { n: wins })}` : ''}`
       : TXT.never;
@@ -1070,6 +1161,146 @@ function renderDifficulties() {
     </button>`;
   }).join('');
   renderLoadout();
+}
+
+/** 'YYYY-AA-GG' → "10 Ekim" (etkin dilde ay adı). */
+function dayLabel(key) {
+  if (!key) return '';
+  const months = MODE.months;
+  return template(MODE.dayFormat, { d: Number(key.slice(8, 10)), m: months[Number(key.slice(5, 7)) - 1] ?? '' });
+}
+
+/** Kural çipleri (simge + ad); full: açıklamalarıyla liste. */
+function modChips(mods) {
+  return `<span class="mod-chips">${mods.map((id) => `<span class="mod-chip mod-${id}">${ICON[`m_${id}`] ?? ''}${MODIFIERS[id].name}</span>`).join('')}</span>`;
+}
+function modList(mods) {
+  return `<ul class="mod-list">${mods.map((id) => `<li class="mod-${id}"><span class="mod-ico">${ICON[`m_${id}`] ?? ''}</span><span><b>${MODIFIERS[id].name}</b><small>${MODIFIERS[id].desc}</small></span></li>`).join('')}</ul>`;
+}
+
+/** Günün Sınavı / Sınav: zorluk sabit; kurallar, ödül ve durum. */
+function rulesCard() {
+  const d = DIFFICULTIES[chosenDiff];
+  let reward;
+  let done;
+  if (pending.mode === 'daily') {
+    const daily = meta.dailyChallenge(pending.daily);
+    done = !!daily && daily.done;
+    reward = daily ? daily.reward : 0;
+  } else {
+    const c = CHALLENGE_BY_ID[pending.challenge];
+    done = meta.challengeDone(c.id);
+    reward = c.reward;
+  }
+  const state2 = done
+    ? `<span class="rules-done">${ICON.check}${pending.mode === 'daily' ? MODE.dailyDone : MODE.challengeDone}</span>`
+    : `<span class="reward">${ICON.coin}+${formatInt(reward)} ${MODE.firstWin}</span>`;
+  return `<div class="rules-card">
+    <h3 class="shop-section">${MODE.rules}</h3>
+    ${modList(pending.mods)}
+    <div class="rules-foot"><span class="diff-pill diff-${d.id}">${d.name}</span><span>${TXT.lives} <b>${pending.mods.includes('glass') ? MODIFIERS.glass.lives : d.lives}</b></span>${state2}</div>
+  </div>`;
+}
+
+/* — Meydan Okumalar (1.5.0) — */
+function openModes() {
+  tips.complete('modes');
+  renderModes();
+  ref('modesBody').scrollTop = 0;
+  show('modes');
+  play('ui_open');
+}
+
+function renderModes() {
+  const open = meta.modesUnlocked();
+  const done = meta.challengesDone();
+  ref('medalChip').innerHTML = `${ICON.medal}${done}<small>/${CHALLENGES.length}</small>`;
+  // Sonsuz Gece: en iyi rekor (bölüm ve zorluk)
+  let top = null;
+  for (const m of MAPS) for (const d of DIFFICULTY_ORDER) {
+    const n = meta.endlessBest(m.id, d);
+    if (n > 0 && (!top || n > top.n)) top = { n, m, d };
+  }
+  const endlessRec = top ? template(MODE.endlessRecord, { n: top.n, name: top.m.name, diff: DIFFICULTIES[top.d].name }) : MODE.endlessNone;
+  // Günün Sınavı
+  const daily = meta.dailyChallenge();
+  const streak = meta.dailyStreak();
+  let dailyHtml;
+  if (daily) {
+    const m = MAP_BY_ID[daily.mapId];
+    dailyHtml = `<p class="mode-where" style="--accent:${m.theme.accent}"><b>${m.name}</b> · ${DIFFICULTIES[daily.difficulty].name}</p>
+      ${modChips(daily.mods)}
+      <span class="mode-record">${daily.done ? `${ICON.check}${MODE.dailyDone}` : `${ICON.coin}+${formatInt(daily.reward)}`}${streak > 0 ? ` · ${template(MODE.streak, { n: streak })}` : ''}</span>`;
+  } else {
+    dailyHtml = `<span class="mode-record">${MODE.lockedFirst}</span>`;
+  }
+  const head = open ? '' : `<p class="modes-locked">${ICON.lock}<span>${MODE.lockedAll}</span></p>`;
+  ref('modesBody').innerHTML = `<div class="modes-col">${head}
+    <div class="mode-cards">
+      <article class="mode-card mode-endless ${open ? '' : 'locked'}">
+        <span class="mode-icon">${ICON.endless}</span>
+        <div class="mode-text"><h3>${MODE.endless.name}</h3><p>${MODE.endless.card}</p><span class="mode-record">${endlessRec}</span></div>
+        <button type="button" class="menu-btn small" data-act="endless" ${open ? '' : 'disabled'}>${MODE.pickChapter}</button>
+      </article>
+      <article class="mode-card mode-daily ${open ? '' : 'locked'} ${daily && daily.done ? 'done' : ''}">
+        <span class="mode-icon">${ICON.daily}</span>
+        <div class="mode-text"><h3>${MODE.daily.name}<small>${dayLabel(daily ? daily.date : '')}</small></h3><p>${MODE.daily.card}</p>${dailyHtml}</div>
+        <button type="button" class="menu-btn small ${daily && !daily.done ? 'primary' : ''}" data-act="daily" ${daily ? '' : 'disabled'}>${daily && daily.done ? MODE.replay : MODE.start}</button>
+      </article>
+    </div></div>
+    <div class="trials-col">
+      <h3 class="shop-section challenge-head"><span>${MODE.challenges}</span><b>${done}/${CHALLENGES.length}</b></h3>
+      <p class="shop-note">${MODE.challengesHint}</p>
+      <div class="challenge-list">${CHALLENGES.map(challengeCard).join('')}</div>
+    </div>`;
+}
+
+function challengeCard(c) {
+  const m = MAP_BY_ID[c.map];
+  const open = meta.challengeUnlocked(c.id);
+  const done = meta.challengeDone(c.id);
+  const foot = !open
+    ? `${ICON.lock}<em>${template(MODE.challengeLocked, { name: m.name })}</em>`
+    : done ? `<span class="ch-done">${ICON.check}${MODE.challengeDone}</span>` : `<span class="reward">${ICON.coin}+${formatInt(c.reward)}</span>`;
+  return `<button type="button" class="challenge-card ${open ? '' : 'locked'} ${done ? 'done' : ''}" data-act="challenge" data-id="${c.id}" style="--accent:${m.theme.accent}" ${open ? '' : 'aria-disabled="true"'}>
+    <small class="ch-kicker">${template(TXT.chapter, { n: m.index + 1 })} · ${m.name} · ${DIFFICULTIES[c.difficulty].name}</small>
+    <strong>${c.name}</strong>
+    ${modChips(c.mods)}
+    <span class="ch-foot">${foot}</span>
+  </button>`;
+}
+
+function chooseDaily() {
+  const daily = meta.dailyChallenge();
+  if (!daily) {
+    play('ui_deny');
+    return;
+  }
+  pending = { mode: 'daily', mods: [...daily.mods], challenge: '', daily: daily.date };
+  chosenMap = daily.mapId;
+  chosenDiff = daily.difficulty;
+  renderDifficulties();
+  ref('diffList').scrollTop = 0;
+  show('difficulty');
+  play('ui_open');
+}
+
+function chooseChallenge(id) {
+  const c = CHALLENGE_BY_ID[id];
+  if (!c) return;
+  if (!meta.challengeUnlocked(id)) {
+    play('ui_deny');
+    const card = ref('modesBody').querySelector(`[data-id="${id}"]`);
+    if (card) pop(card, 'shake');
+    return;
+  }
+  play('ui_open');
+  haptic('tap');
+  pending = { mode: 'challenge', mods: [...c.mods], challenge: c.id, daily: '' };
+  chosenMap = c.map;
+  chosenDiff = c.difficulty;
+  renderDifficulties();
+  show('difficulty');
 }
 
 /* — Oyuna götürülecek kuleler — */
@@ -1123,7 +1354,7 @@ function confirmHint(reason) {
 }
 
 function chooseDifficulty(id) {
-  if (!DIFFICULTIES[id] || id === chosenDiff) return;
+  if (!DIFFICULTIES[id] || id === chosenDiff || pending.mode === 'daily' || pending.mode === 'challenge') return;
   chosenDiff = id;
   play('ui_toggle');
   haptic('tap');
@@ -1136,8 +1367,15 @@ function chooseDifficulty(id) {
 
 function renderSummary() {
   const run = state.run;
+  const total = game.totalWaves();
+  const mods = ref('runMods');
+  const label = run.mode === 'challenge' && CHALLENGE_BY_ID[run.challenge]
+    ? template(MODE.challengeKicker, { name: CHALLENGE_BY_ID[run.challenge].name })
+    : run.mode !== 'campaign' ? MODE[run.mode].name : '';
+  mods.hidden = !label && !run.mods.length;
+  mods.innerHTML = `${label ? `<small>${label}</small>` : ''}${run.mods.length ? modChips(run.mods) : ''}`;
   ref('runSummary').innerHTML = `
-    <div><small>${STRINGS.menu.wave}</small><b>${run.wave}<span>/${WAVE_COUNT}</span></b></div>
+    <div><small>${STRINGS.menu.wave}</small><b>${run.wave}<span>/${Number.isFinite(total) ? total : '∞'}</span></b></div>
     <div><small>${TXT.lives}</small><b>${run.lives}</b></div>
     <div><small>${TXT.soulsNow}</small><b>${formatInt(run.souls)}</b></div>
     <div><small>${TXT.kills}</small><b>${formatInt(run.stats.kills)}</b></div>`;
@@ -1149,13 +1387,36 @@ function renderEnd(victory, stats, res, reward) {
   const card = ref('endCard');
   card.classList.toggle('victory', victory);
   card.classList.toggle('defeat', !victory);
+  card.classList.toggle('endless', (stats.mode ?? 'campaign') === 'endless');
   const ch = MAP_BY_ID[stats.mapId] ?? MAPS[0];
-  ref('endKicker').textContent = res.newBest ? `${TXT.newBest} · ${ch.name}` : `${ch.name} · ${DIFFICULTIES[stats.difficulty].name}`;
+  const mode = stats.mode ?? 'campaign';
+  const endless = mode === 'endless';
+  let where = `${ch.name} · ${DIFFICULTIES[stats.difficulty].name}`;
+  if (endless) where = `${MODE.endless.name} · ${ch.name}`;
+  else if (mode === 'daily') where = `${MODE.daily.name} · ${dayLabel(stats.daily)}`;
+  else if (mode === 'challenge' && CHALLENGE_BY_ID[stats.challenge]) where = template(MODE.challengeKicker, { name: CHALLENGE_BY_ID[stats.challenge].name });
+  ref('endKicker').textContent = res.newBest ? `${TXT.newBest} · ${endless ? MODE.endless.name : ch.name}` : where;
   ref('endKicker').classList.toggle('best', res.newBest);
-  ref('endTitle').textContent = victory ? STRINGS.end.victory : STRINGS.end.defeat;
-  ref('endSub').textContent = victory ? STRINGS.end.victorySub : STRINGS.end.defeatSub;
+  let title = victory ? STRINGS.end.victory : STRINGS.end.defeat;
+  let sub = victory ? STRINGS.end.victorySub : STRINGS.end.defeatSub;
+  if (endless) {
+    title = MODE.endlessOver;
+    sub = template(MODE.endlessSub, { n: res.reached, best: res.best });
+  } else if (victory && mode === 'daily') {
+    sub = res.dailyFirst ? template(MODE.dailyWin, { n: res.streak }) : MODE.dailyAgain;
+  } else if (victory && mode === 'challenge') {
+    sub = res.challengeFirst ? MODE.challengeWin : MODE.challengeAgain;
+  } else if (!victory && mode !== 'campaign') {
+    sub = MODE.noRuin; // Meydan Okumalarda kale yıkılmaz
+  }
+  ref('endTitle').textContent = title;
+  ref('endSub').textContent = sub;
+  // bölüm zaferinde: aynı savaşı Sonsuz Gece olarak sürdür
+  const more = victory && mode === 'campaign';
+  ref('endlessBtn').hidden = !more;
+  ref('retryBtn').classList.toggle('primary', !more);
   ref('endStats').innerHTML = `
-    <div><small>${STRINGS.end.reached}</small><b>${res.reached}<span>/${WAVE_COUNT}</span></b></div>
+    <div><small>${STRINGS.end.reached}</small><b>${res.reached}<span>${endless ? '' : `/${WAVE_COUNT}`}</span></b></div>
     <div><small>${STRINGS.end.kills}</small><b>${formatInt(stats.kills)}</b></div>
     <div><small>${STRINGS.end.soulsEarned}</small><b>${formatInt(stats.soulsEarned)}</b></div>
     <div><small>${STRINGS.end.livesLeft}</small><b>${stats.lives}</b></div>`;
@@ -1169,9 +1430,12 @@ function renderEnd(victory, stats, res, reward) {
     ? `<div class="end-unlock" style="--accent:${res.unlocked.theme.accent}"><small>${TXT.newChapter}</small><b>${res.unlocked.name}</b>${
       res.unlocked.unlocks.towers.length + res.unlocked.unlocks.skills.length > 0 ? `<span>${TXT.newItems}</span>` : ''}</div>`
     : '';
+  const bonus = reward.parts.bonus > 0
+    ? `<li class="bonus"><span>${mode === 'daily' ? MODE.bonusDaily : MODE.bonusChallenge}</span><b>+${formatInt(reward.parts.bonus)}</b></li>`
+    : '';
   ref('endReward').innerHTML = `${unlock}<div class="reward-head"><small>${E.reward}</small><b>${ICON.coin}+${formatInt(reward.total)}</b></div>
     <ul class="reward-lines">${lines.map(([t, v]) => `<li><span>${t}</span><b>${formatInt(v)}</b></li>`).join('')}
-    <li class="mult"><span>${template(E.rewardDifficulty, { m: formatValue(reward.diffMult, 'dec1') })}</span><span>${template(E.rewardChapter, { m: formatValue(reward.chapterMult, 'dec1') })}</span></li></ul>`;
+    <li class="mult"><span>${template(E.rewardDifficulty, { m: formatValue(reward.diffMult, 'dec1') })}</span><span>${template(E.rewardChapter, { m: formatValue(reward.chapterMult, 'dec1') })}</span></li>${bonus}</ul>`;
   renderEndRuin();
   show('end');
 }

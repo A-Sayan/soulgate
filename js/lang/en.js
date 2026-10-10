@@ -66,7 +66,7 @@ export default {
   difficulties: {
     easy: { name: 'Apprentice', desc: 'Sturdier walls, weaker enemies.' },
     normal: { name: 'Warden', desc: 'The balance the game was designed around.' },
-    hard: { name: 'Nightmare', desc: 'Few lives, scarce souls, a merciless night. The richest gold reward.' },
+    hard: { name: 'Nightmare', desc: 'Few lives, elite enemies, wrathful bosses; map events strike often and hard. The richest gold reward.' },
   },
 
   waveTags: {
@@ -675,6 +675,8 @@ export default {
     autoOff: 'Auto wave off',
     chapter: 'CHAPTER {n}',
     blizzard: 'Blizzard! Towers are firing slowly',
+    noSell: 'Can\'t sell (challenge rule)',
+    noMastery: 'No mastery (challenge rule)',
     fullLives: 'The castle is already at full lives',
     buffed: 'Bell: speed +{rate}, power +{dmg}',
     buffedRate: 'Bell: speed +{rate}',
@@ -920,6 +922,131 @@ export default {
     },
     chapter: {
       title: '{name}: main threat',
+    },
+    event: {
+      title: 'Map event: {name}',
+    },
+    wrath: {
+      title: 'Wrathful boss',
+      text: 'This boss is wrathful: now and then it roars and briefly silences nearby towers, and it speeds up at half health. Don\'t pile all your towers in one corner.',
+    },
+    elite: {
+      title: 'Elite enemy',
+      text: 'Enemies with a golden ring at their feet are elites: tougher and a little faster, but they drop twice the souls.',
+    },
+    endless: {
+      title: 'Endless Night',
+      text: 'The waves never end now: a boss every 10 waves, bigger crowds and more elites. Your record is the wave you reach.',
+    },
+    modes: {
+      title: 'Challenges unlocked',
+      text: 'Endless Night, the Daily Trial and Trials are waiting. New rules, records and gold rewards are here.',
+    },
+  },
+
+  // Challenges (1.5.0): modes, rules, trials, map events
+  modes: {
+    title: 'Challenges',
+    campaign: { name: 'Chapter' },
+    endless: {
+      name: 'Endless Night',
+      sub: 'The waves never end now',
+      desc: 'After this chapter\'s 30 waves the night goes on: a boss every 10 waves, bigger crowds and more elites. Your record is the wave you reach.',
+      card: 'In a chapter you have won, the waves never end. How long can you hold?',
+    },
+    daily: {
+      name: 'Daily Trial',
+      card: 'A new chapter and two rules every day. The first win of the day pays a big gold reward.',
+    },
+    challenge: { name: 'Trial' },
+    challengeKicker: 'Trial: {name}',
+    continued: 'Chapter won',
+    continueEndless: 'Keep going: Endless',
+    endlessLocked: 'Unlocks when you win the chapter',
+    endlessRecord: 'Best: wave {n}, {name} ({diff})',
+    endlessNone: 'No record yet',
+    event: 'Map event',
+    months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    dayFormat: '{m} {d}',
+    rules: 'Rules',
+    dailyDone: 'Won today',
+    challengeDone: 'Completed',
+    firstWin: 'on first win',
+    streak: 'Streak: {n} days',
+    lockedFirst: 'Unlocks when you win the first chapter',
+    lockedAll: 'Challenges unlock when you win the first chapter (Ash Valley) on any difficulty.',
+    pickChapter: 'Pick a chapter',
+    start: 'Start',
+    replay: 'Play again',
+    challenges: 'Trials',
+    challengesHint: 'Every chapter you win opens two trials. Rules and difficulty are fixed; the first clear pays gold and earns a seal.',
+    challengeLocked: 'Unlocks when you win {name}',
+    endlessOver: 'The Night Ends',
+    endlessSub: 'The night took you at wave {n}. Best: {best}.',
+    dailyWin: 'You won the Daily Trial! Streak: {n} days.',
+    dailyAgain: 'Today\'s reward was already claimed. A new trial comes tomorrow.',
+    challengeWin: 'Trial complete, the seal is yours!',
+    challengeAgain: 'You had already completed this trial.',
+    noRuin: 'The castle is never ruined in Challenges; try as often as you like.',
+    bonusDaily: 'Daily Trial reward',
+    bonusChallenge: 'Trial reward',
+  },
+
+  // Rules (config MODIFIERS)
+  mods: {
+    glass: { name: 'Glass Keep', desc: 'The castle starts with a single life. Walls and Holy Mending won\'t help; one leak is enough.' },
+    wrath: { name: 'Wrathful Bosses', desc: 'Bosses are tougher; now and then they roar and silence nearby towers, and speed up at half health.' },
+    scarce: { name: 'Scarce Souls', desc: 'Kills, wave bonuses and early calls give 20% fewer souls.' },
+    swift: { name: 'Swift Dead', desc: 'All enemies walk 20% faster.' },
+    armored: { name: 'Iron Host', desc: 'All enemies gain armor and magic resistance.' },
+    horde: { name: 'Horde', desc: 'Regular enemy groups come 35% larger.' },
+    noskills: { name: 'Silent Towers', desc: 'The side towers\' skills can\'t be used in this battle.' },
+    nosell: { name: 'No Selling', desc: 'Towers that have fought can\'t be sold; you can only take back what you built in this preparation.' },
+    nomastery: { name: 'No Mastery', desc: 'Masteries can\'t be chosen; towers stop at level 3.' },
+    fog: { name: 'Fog', desc: 'Every tower\'s range is 15% shorter.' },
+    storm: { name: 'Event Storm', desc: 'The map\'s event strikes more than twice as often.' },
+  },
+
+  // Trials (config CHALLENGES)
+  challenges: {
+    'glass-ash': 'Glass Keep',
+    'iron-ash': 'Iron March',
+    'wrath-frost': 'Glacier Wrath',
+    'silent-frost': 'Silent Pass',
+    'horde-mire': 'Rotting Swarm',
+    'fog-mire': 'Fogbound Mire',
+    'storm-forge': 'Lava Storm',
+    'scarce-forge': 'Famine Forge',
+    'night-void': 'End of Night',
+    'glass-void': 'Glass Throne',
+  },
+
+  // Map events (config MAP_EVENTS; each chapter has its own)
+  events: {
+    rise: {
+      name: 'The Dead Rise',
+      desc: 'During battle the old grave stirs now and then and skeletons crawl onto the road. They are extra enemies, but they drop souls too.',
+      warnText: 'The grave stirs: the dead are rising!',
+    },
+    blizzard: {
+      name: 'Blizzard',
+      desc: 'Now and then a blizzard blows in: for a few seconds towers fire slower and enemies walk slower too (except frost wolves).',
+      warnText: 'A blizzard is coming!',
+    },
+    gas: {
+      name: 'Swamp Gas',
+      desc: 'A gas bubble bursts on the road: towers inside are silenced briefly, enemies are poisoned and can\'t regenerate.',
+      warnText: 'Gas is swelling: watch the marked spot!',
+    },
+    lava: {
+      name: 'Lava Burst',
+      desc: 'Now and then the lava pools hurl embers: enemies where they land burn, towers there are briefly silenced.',
+      warnText: 'Lava is bursting: watch the marked spots!',
+    },
+    rift: {
+      name: 'Void Rift',
+      desc: 'A rift opens on the road: enemies passing through are thrown back, but they gain a void shield.',
+      warnText: 'A void rift is opening on the road!',
     },
   },
 };

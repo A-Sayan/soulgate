@@ -1,31 +1,55 @@
-## Soulgate: Tower Defense 1.4.0
+## Soulgate: Tower Defense 1.5.0
 
 **Türkçe**
 
-- Öğretici: ilk savaşta kısa ipuçları adım adım yol gösteriyor (kule kur, dalgayı başlat, kuleyi yükselt, oyun hızı, otomatik dalga). Sonrakiler yeri gelince çıkıyor: ilk yetenek, ilk patron, ustalık, altıdan fazla kule olunca kule seçimi, altın kazanınca çarşı. İpuçları oyunu durdurmuyor ve anlatılan iş yapılınca kendiliğinden kapanıyor.
-- Ayarlar → Rehberlik: öğretici ipuçlarını ve bilgi kartlarını (yeni düşman/kule kutucukları) kapatma düğmeleri, "İpuçlarını baştan göster".
-- Kule elde kalıyor: bardan seçilen kuleyi peş peşe kurabilirsin. Bırakmak için bardaki kuleye yeniden dokun ya da yola dokun (bilgisayarda sağ tık ya da Esc).
-- Her bölümün asıl tehdidi: bölüm kartlarında ve zorluk ekranında simgeli etiketler (ağır zırh, uçanlar, yenilenme…) ve neye karşı ne işe yaradığını anlatan kısa bir not. Yeni bir bölüme ilk girişte de gösteriliyor.
-- Geri bildirim: ana menüde ve Ayarlar'da itch.io sayfasına giden bağlantı.
-- Bilgisayarda tam ekrandayken Esc artık tam ekrandan çıkmıyor, oyunu duraklatıyor (Chrome ve Edge; tam ekrandan çıkmak için Esc'i basılı tut). Başka tarayıcılarda ya da tam ekrandan çıkılınca oyun kendiliğinden duraklıyor.
+- **Meydan Okumalar** (ana menüde yeni düğme). İlk bölümü kazanınca açılır:
+  - **Sonsuz Gece:** kazandığın bir bölümde dalgalar 30'da bitmez. Her 10 dalgada bir patron gelir; düşmanlar giderek sertleşir, kalabalıklaşır ve seçkinleşir. Rekor, bölüm ve zorluk başına ulaşılan dalgadır. Bir bölüm zaferinin sonunda "Sonsuza devam et" ile aynı savaşı da sürdürebilirsin.
+  - **Günün Sınavı:** her gün kazandığın bölümlerden biri ve iki ek kural. Günün ilk zaferi büyük altın ödülü verir; peş peşe kazandığın günler seri olarak sayılır.
+  - **Sınavlar:** her bölüme iki, toplam on sabit meydan okuma. Örnek kurallar: Cam Kale (kale tek canla), Öfkeli Patronlar, Kalabalık, Kıt Ruh, Satış Yok, Ustasız, Sessiz Burçlar, Sis, Olay Fırtınası. İlk tamamlayışta altın ödülü ve mühür kazanırsın.
+  - Meydan Okumalarda yenilgi kaleyi yıkmaz.
+- **Harita olayları:** her bölümün kendine özgü bir olayı var. Olaydan önce haritada uyarı belirir.
+  - Kül Vadisi: mezardan iskeletler kalkar.
+  - Ayaz Geçidi: tipi çıkar.
+  - Kara Bataklık: bataklık gazı kabarır.
+  - Kor Ocakları: lav sıçrar.
+  - Boşluk Tahtı: yolda bir yarık açılır.
+  - Her olayın oyuncuya iyi ve kötü bir yanı var.
+- **Kâbus artık gerçekten kâbus:**
+  - Harita olayları daha sık ve daha sert.
+  - Seçkin düşmanlar (altın halkalı, dayanıklı, 2 kat ruh bırakır) gelir.
+  - Patronlar öfkelidir: kükreyip yakındaki kuleleri susturur, yarı canda hızlanır.
+  - Altın ödülü yükseldi.
+- Savaş öncesi ekranında bölümün harita olayı yazar. Yeni olaylar, seçkinler, öfkeli patronlar ve Sonsuz Gece için öğretici ipuçları eklendi.
 
 **Dosyalar**
 
-- `Soulgate-1.4.0.apk`: Android telefona kurulur (Android 7 ve üstü). Eskisinin üstüne kurulur, ilerleme korunur.
-- `Soulgate-1.4.0-web.zip`: tarayıcı sürümü (itch.io'ya bu yüklenir).
+- `Soulgate-1.5.0.apk`: Android telefona kurulur (Android 7 ve üstü). Eskisinin üstüne kurulur, ilerleme korunur.
+- `Soulgate-1.5.0-web.zip`: tarayıcı sürümü (itch.io'ya bu yüklenir).
 
 ---
 
 **English**
 
-- Tutorial: in your first battle short tips walk you through the basics (build a tower, start the wave, upgrade, game speed, auto wave). Later ones appear when they matter: your first skill, first boss, mastery, choosing towers once you own more than six, the Market once you earn gold. Tips never pause the game and close by themselves once you do what they describe.
-- Settings → Guidance: switches for tutorial tips and info cards (the new enemy/tower boxes), plus "Show tips again".
-- Towers stay in hand: pick a tower from the bar and build it again and again. To let go, tap the tower on the bar again or tap the road (right-click or Esc on a computer).
-- Each chapter's main threat: icon tags on the chapter cards and the difficulty screen (heavy armor, flyers, regeneration…) with a short note on what works against them. Also shown the first time you enter a new chapter.
-- Feedback: a link to the itch.io page on the main menu and in Settings.
-- On a computer in full screen, Esc now pauses the game instead of leaving full screen (Chrome and Edge; hold Esc to leave full screen). In other browsers, or whenever full screen ends, the game pauses by itself.
+- **Challenges** (a new button on the main menu). They unlock once you win the first chapter:
+  - **Endless Night:** in a chapter you have won, the waves don't stop at 30. A boss comes every 10 waves, and enemies keep getting tougher, more numerous and more elite. Your record is the wave you reach, for each chapter and difficulty. After a chapter victory, "Keep going: Endless" continues the same battle.
+  - **Daily Trial:** every day, one of the chapters you have won with two extra rules. The first win of the day pays a big gold reward, and consecutive days count as a streak.
+  - **Trials:** ten fixed challenges, two per chapter. Example rules: Glass Keep (the castle has a single life), Wrathful Bosses, Horde, Scarce Souls, No Selling, No Mastery, Silent Towers, Fog, Event Storm. Your first clear pays gold and earns a seal.
+  - Losing in Challenges never ruins the castle.
+- **Map events:** each chapter has its own event, and a warning appears on the map before it strikes.
+  - Ash Valley: skeletons rise from the grave.
+  - Frost Pass: a blizzard blows in.
+  - Black Mire: swamp gas swells.
+  - Ember Forges: lava bursts.
+  - Void Throne: a rift opens on the road.
+  - Every event has a good side and a bad side for the player.
+- **Nightmare is a true nightmare now:**
+  - Map events strike more often and harder.
+  - Elite enemies appear (golden ring, tougher, twice the souls).
+  - Bosses are wrathful: they roar to silence nearby towers and speed up at half health.
+  - The gold reward is higher.
+- The pre-battle screen shows the chapter's map event. New tutorial tips cover map events, elites, wrathful bosses and Endless Night.
 
 **Files**
 
-- `Soulgate-1.4.0.apk`: install on an Android phone (Android 7+). Installs over the old version; progress is kept.
-- `Soulgate-1.4.0-web.zip`: browser build (for itch.io).
+- `Soulgate-1.5.0.apk`: install on an Android phone (Android 7+). Installs over the old version; progress is kept.
+- `Soulgate-1.5.0-web.zip`: browser build (for itch.io).

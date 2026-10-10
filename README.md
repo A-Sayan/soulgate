@@ -17,6 +17,7 @@
 - **12 kule**, her savaştan önce 6'sını seçersin. **9 beceri**, **39 düşman** (11 boss), **5 kale geliştirmesi**.
 - Bölümler sırayla açılır; kazandığın her zorluk bir yıldız (toplam 15).
 - Her bölümün asıl tehdidi (ağır zırh, uçanlar, yenilenme…) bölüm seçerken görünür. İlk savaşta kısa bir öğretici yol gösterir; ayarlardan kapatılabilir.
+- **Meydan Okumalar:** Sonsuz Gece (dalgalar bitmez), Günün Sınavı (her gün yeni kurallar) ve 10 Sınav. Her bölümün kendine özgü bir harita olayı var (lav sıçraması, tipi, boşluk yarığı…); Kâbus'ta olaylar sık, düşmanlar seçkin, patronlar öfkeli.
 - Türkçe ve İngilizce. İnternetsiz çalışır; telefonda "Ana ekrana ekle" ile uygulama gibi kurulabilir.
 - Telefonda, tablette ve bilgisayarda oynanır; bilgisayarda tam ekran, geniş ekran düzeni. Fare ve klavye: 1–6 kule, Boşluk dalga, F hız, Q / E yetenekler, U yükselt, X sat, sağ tık vazgeç.
 
@@ -32,6 +33,7 @@
 - **12 towers** (pick 6 before each battle), **9 skills**, **39 enemies** (11 bosses), **5 castle upgrades**.
 - Chapters unlock in order; every difficulty you win is a star (15 in total).
 - Each chapter shows its main threat (heavy armor, flyers, regeneration…) when you pick it. A short tutorial guides your first battle; it can be turned off in Settings.
+- **Challenges:** Endless Night (the waves never end), a Daily Trial with new rules every day, and 10 Trials. Each chapter has its own map event (lava bursts, blizzards, void rifts…); on Nightmare events strike often, enemies turn elite and bosses grow wrathful.
 - Turkish and English. Works offline; can be installed from the browser with "Add to Home screen".
 - Plays on phones, tablets and computers; full-screen wide layout on computers. Mouse and keyboard: 1–6 towers, Space wave, F speed, Q / E skills, U upgrade, X sell, right-click to cancel.
 

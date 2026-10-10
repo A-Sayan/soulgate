@@ -40,6 +40,10 @@
  *     hedefleme, satış (satış iki dokunuşla onaylanır).
  *   • Ana kuleye (kale) dokun → menzili ve istatistikleri görünür.
  *
+ *  MODLAR (1.5.0): oyun başındaki afiş modu ve kuralları söyler; Sonsuz
+ *  Gece'de dalga sayacı "/∞" gösterir. Harita olayının uyarısı kısa mesajla
+ *  gelir. "Satış Yok" ve "Ustasız" kurallarında panel bunu açıkça yazar.
+ *
  *  DOM: init(root) tüm arayüzü root içine kurar; style.css biçimlendirir.
  *  Dil: sabit etiketler data-t / data-t-aria ile işaretlidir; dil değişince
  *  relocalize() onları ve açık olan dinamik metinleri yeniden yazar.
@@ -49,7 +53,7 @@
 
 import {
   TOWERS, ENEMIES, WAVE_TAGS, TARGET_MODES, STAT_LABELS, STRINGS, TIMING, FEEL, THEME, SKILLS,
-  CASTLE, CASTLE_UPGRADE_ORDER, MAP_BY_ID,
+  CASTLE, CASTLE_UPGRADE_ORDER, MAP_BY_ID, MODIFIERS, CHALLENGE_BY_ID, MAP_EVENTS,
 } from './config.js';
 import { formatInt, formatValue, template, clamp, damp } from './utils.js';
 import { EV, on, emit } from './events.js';
@@ -70,6 +74,7 @@ import { ICON } from './icons.js';
 /* Arayüze özgü kısa metinler: etkin dilden canlı okunur (lang: ui.*). */
 const TXT = section('ui');
 const KEYS = section('settings.keys'); // tuş adları (Boşluk / Space)
+const MODE = section('modes');         // Meydan Okumalar: mod adları (Sonsuz Gece, Günün Sınavı, Sınav)
 
 /* Fareyle oynanıyor mu (bilgisayar)? İpuçları "dokun" yerine "tıkla" der.
    Sorgu canlıdır: dokunmatik ekranlı bir dizüstünde fare takılınca değişir. */
@@ -432,9 +437,16 @@ function subscribe() {
     hinted = { tap: false, again: false };
     refreshAll();
     if (state.run.ruined && !fromSave) setTimeout(() => toast(TXT.ruined, 'warn'), 900);
-    const ch = MAP_BY_ID[state.run.mapId];
-    if (ch) banner({ kicker: template(TXT.chapter, { n: ch.index + 1 }), title: ch.name, sub: ch.sub, color: ch.theme.accent, small: true });
+    runBanner();
     introduceLoadout();
+  });
+  on(EV.RUN_CONTINUE, () => {
+    refreshAll();
+    const ch = MAP_BY_ID[state.run.mapId];
+    banner({ kicker: MODE.continued, title: MODE.endless.name, sub: MODE.endless.sub, color: ch ? ch.theme.accent : THEME.gold, small: true });
+  });
+  on(EV.MAP_EVENT, (id, phase) => {
+    if (phase === 'warn' && MAP_EVENTS[id]) toast(MAP_EVENTS[id].warnText, 'warn');
   });
   on(EV.ABILITY, (e, kind) => {
     if (kind === 'blizzard') toast(TXT.blizzard, 'warn');
@@ -873,7 +885,9 @@ function renderPanel(force = false) {
   }
 
   // yükseltme / ustalık
-  if (!opt) {
+  if (!opt && t.mastery < 0 && t.level === def.levels.length - 1) {
+    el.panelUpgrade.innerHTML = `<div class="maxed rule">${TXT.noMastery}</div>`; // "Ustasız" kuralı
+  } else if (!opt) {
     el.panelUpgrade.innerHTML = `<div class="maxed">✦ ${STRINGS.panel.maxed} ✦</div>`;
   } else if (opt.kind === 'level') {
     el.panelUpgrade.innerHTML = `<button type="button" class="btn btn-primary btn-upgrade" data-up="-1" data-hotkey="U">${STRINGS.panel.upgrade} ${ICON.soul}<b>${opt.cost}</b></button>`;
@@ -950,10 +964,15 @@ function refreshPanelButtons() {
     b.classList.toggle('poor', !check.ok && check.reason === 'souls');
   }
   const value = game.sellValue(t);
-  el.sellBtn.innerHTML = sellArmed > 0
-    ? `${STRINGS.panel.sellConfirm} <b>+${value}</b>`
-    : `${STRINGS.panel.sell} <b>+${value}</b>${t.fresh ? `<small>${TXT.fresh}</small>` : ''}`;
-  el.sellBtn.classList.toggle('armed', sellArmed > 0);
+  const sellable = game.canSell(t).ok; // "Satış Yok" kuralı: savaşa girmiş kule satılamaz
+  el.sellBtn.disabled = !sellable;
+  el.sellBtn.classList.toggle('locked', !sellable);
+  el.sellBtn.innerHTML = !sellable
+    ? `<small>${TXT.noSell}</small>`
+    : sellArmed > 0
+      ? `${STRINGS.panel.sellConfirm} <b>+${value}</b>`
+      : `${STRINGS.panel.sell} <b>+${value}</b>${t.fresh ? `<small>${TXT.fresh}</small>` : ''}`;
+  el.sellBtn.classList.toggle('armed', sellArmed > 0 && sellable);
 }
 
 /** Öldürme/hasar (kuyuda: üretilen ruh) sayacı, çan güçlendirmesi ve susturma uyarısı (birkaç karede bir). */
@@ -975,6 +994,10 @@ function refreshPanelLive() {
 function onSell() {
   const t = selectedTower();
   if (!t || !playing()) return;
+  if (!game.canSell(t).ok) {
+    deny(TXT.noSell);
+    return;
+  }
   if (sellArmed <= 0) {
     sellArmed = 2.5;
     play('ui_tap');
@@ -992,7 +1015,9 @@ function refreshAll() {
   const run = state.run;
   el.livesText.textContent = String(run.lives);
   el.lives.classList.toggle('low', run.lives / run.maxLives <= 0.3);
-  el.waveTotal.textContent = `/${game.totalWaves()}`;
+  const total = game.totalWaves();
+  el.waveTotal.textContent = Number.isFinite(total) ? `/${total}` : '/∞'; // Sonsuz Gece
+  root.classList.toggle('endless', !Number.isFinite(total));
   el.bossbar.hidden = true;
   refreshSpeed();
   refreshAuto();
@@ -1117,6 +1142,21 @@ function nextBanner() {
     el.banner.classList.remove('show');
     setTimeout(nextBanner, FEEL.ui.panelMs + 80);
   }, hold);
+}
+
+/**
+ * Oyun başı afişi: bölümde "Bölüm n", Meydan Okumalarda modun adı; kurallar
+ * varsa alt satırda kuralların adları.
+ */
+function runBanner() {
+  const run = state.run;
+  const ch = MAP_BY_ID[run.mapId];
+  if (!ch) return;
+  let kicker = template(TXT.chapter, { n: ch.index + 1 });
+  if (run.mode === 'challenge' && CHALLENGE_BY_ID[run.challenge]) kicker = template(MODE.challengeKicker, { name: CHALLENGE_BY_ID[run.challenge].name });
+  else if (run.mode !== 'campaign') kicker = MODE[run.mode].name;
+  const sub = run.mods.length ? run.mods.map((m) => MODIFIERS[m].name).join(' · ') : ch.sub;
+  banner({ kicker, title: ch.name, sub, color: ch.theme.accent, small: true });
 }
 
 /* — Keşif kartları — */
@@ -1463,7 +1503,8 @@ function onHotkey(action, arg) {
   } else if (action === 'sell') {
     if (panelMode !== 'tower' || el.sellBtn.hidden) return;
     pressFx(el.sellBtn);
-    el.sellBtn.click(); // ilk basış kurar, ikincisi satar (dokunmadaki gibi)
+    if (el.sellBtn.disabled) deny(TXT.noSell); // "Satış Yok" kuralı
+    else el.sellBtn.click(); // ilk basış kurar, ikincisi satar (dokunmadaki gibi)
   }
 }
 

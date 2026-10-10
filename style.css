@@ -5133,3 +5133,624 @@ a.credits-link {
   line-height: 1.4;
   color: var(--text-dim);
 }
+
+/* --------------------------------------------------------------------------
+ * 18. MEYDAN OKUMALAR, KURALLAR, HARİTA OLAYLARI, SEÇKİNLER (1.5.0)
+ *  Ana menüde Yeni Oyun'un altında "Meydan Okumalar" düğmesi; modes ekranı:
+ *  Sonsuz Gece ve Günün Sınavı kartları + Sınavlar listesi. Savaş öncesi
+ *  ekranında harita olayı kutusu ve (Günün Sınavı / Sınav) kurallar kartı.
+ *  Geniş düzende modes ekranı iki sütun: solda mod kartları, sağda sınavlar.
+ * ------------------------------------------------------------------------ */
+/* — ana menü: Yeni Oyun'un altında Meydan Okumalar — */
+.modes-btn {
+  gap: 8px;
+  border-color: rgba(176, 122, 255, 0.45);
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(160, 100, 255, 0.16), transparent 60%),
+    linear-gradient(180deg, #221a2e, #120e18);
+  color: #e6d2ff;
+}
+
+.modes-btn svg {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  fill: #c9a8ff;
+}
+
+.modes-btn svg .i-hi {
+  fill: #2a1840;
+}
+
+.modes-btn.dim {
+  opacity: 0.6;
+}
+
+/* — mühür çipi (sınavlar): telefonda başlık tek satırda kalsın diye yalnızca geniş düzende — */
+.medal-chip {
+  display: none;
+}
+
+.wide .medal-chip {
+  display: inline-flex;
+}
+
+.medal-chip svg {
+  width: 18px;
+  height: 18px;
+  fill: var(--gold);
+}
+
+.medal-chip svg .i-hi {
+  fill: #3a2a10;
+}
+
+/* — Meydan Okumalar ekranı — */
+.modes-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 10px;
+}
+
+.modes-col,
+.trials-col {
+  display: contents;
+}
+
+.modes-locked {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(232, 184, 74, 0.3);
+  background: rgba(40, 30, 12, 0.5);
+  font-size: 13px;
+  line-height: 1.45;
+  color: #f1dfb8;
+}
+
+.modes-locked svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  fill: var(--gold);
+}
+
+.modes-locked svg .i-line {
+  stroke: var(--gold);
+}
+
+.mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mode-card {
+  --accent: #a98aff;
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 10px 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, #1b1621, #121016);
+}
+
+.mode-daily {
+  --accent: #e8b84a;
+}
+
+.mode-card.locked {
+  opacity: 0.62;
+}
+
+.mode-card.done {
+  border-color: rgba(125, 255, 154, 0.35);
+}
+
+.mode-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 14%, #0e0b12);
+}
+
+.mode-icon svg {
+  width: 26px;
+  height: 26px;
+  fill: var(--accent);
+}
+
+.mode-icon svg .i-hi {
+  fill: #fff6dc;
+}
+
+.mode-icon svg .i-line {
+  stroke: var(--accent);
+}
+
+.mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mode-text h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--accent);
+}
+
+.mode-text h3 small {
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.mode-text p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--bone);
+}
+
+.mode-text .mode-where {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.mode-where b {
+  color: var(--accent);
+}
+
+.mode-record {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--gold-hi);
+}
+
+.mode-record svg {
+  width: 15px;
+  height: 15px;
+}
+
+.mode-card .mode-record svg .i-line,
+.ch-done svg .i-line,
+.rules-done svg .i-line {
+  stroke: var(--good);
+  stroke-width: 3;
+}
+
+.mode-card > .menu-btn {
+  grid-column: 1 / -1;
+}
+
+/* — kural çipleri — */
+.mod-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.mod-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 184, 74, 0.38);
+  background: rgba(70, 48, 12, 0.32);
+  color: #ffe2a8;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mod-chip svg,
+.mod-ico svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: #e8b84a;
+}
+
+.mod-chip svg .i-line,
+.mod-ico svg .i-line {
+  stroke: #e8b84a;
+}
+
+.mod-chip svg .i-hi,
+.mod-ico svg .i-hi {
+  fill: #3a2a10;
+  stroke: #3a2a10;
+}
+
+.mod-chip svg .i-cut,
+.mod-ico svg .i-cut {
+  stroke: #ffe2a8;
+  stroke-width: 2.6;
+}
+
+/* — sınavlar — */
+.challenge-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.challenge-head b {
+  font-family: var(--serif);
+  color: var(--gold-hi);
+}
+
+.challenge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.challenge-card {
+  --accent: var(--gold);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  flex: none;
+  padding: 11px 12px 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-left: 3px solid var(--accent);
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%),
+    linear-gradient(180deg, #1b1621, #121016);
+  text-align: left;
+  transition: transform 0.12s var(--ease-out), border-color 0.2s;
+}
+
+.challenge-card:active {
+  transform: scale(0.985);
+}
+
+.challenge-card.locked {
+  border-left-color: rgba(255, 255, 255, 0.12);
+  opacity: 0.6;
+}
+
+.challenge-card.done {
+  border-color: rgba(125, 255, 154, 0.3);
+  border-left-color: var(--good);
+}
+
+.challenge-card.shake {
+  animation: shake 0.35s;
+}
+
+.ch-kicker {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.challenge-card strong {
+  font-family: var(--serif);
+  font-size: 17px;
+  color: var(--bone);
+}
+
+.ch-foot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gold-hi);
+}
+
+.ch-foot svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ch-foot em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.challenge-card.locked .ch-foot svg {
+  fill: var(--text-dim);
+}
+
+.challenge-card.locked .ch-foot svg .i-line {
+  stroke: var(--text-dim);
+}
+
+.ch-done,
+.rules-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--good);
+}
+
+.ch-foot .reward,
+.rules-foot .reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reward svg,
+.rules-foot svg {
+  flex: none;
+  width: 15px;
+  height: 15px;
+}
+
+/* — savaş öncesi: harita olayı ve kurallar — */
+.diff-event {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, rgba(14, 11, 18, 0.6));
+}
+
+.diff-event > b {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.diff-event p {
+  margin: 5px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--bone);
+}
+
+.rules-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(232, 184, 74, 0.32);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(232, 184, 74, 0.1), transparent 70%),
+    linear-gradient(180deg, #1b1621, #121016);
+}
+
+.rules-card .shop-section {
+  margin: 0;
+}
+
+.mod-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mod-list li {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+.mod-ico {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid rgba(232, 184, 74, 0.35);
+  background: rgba(70, 48, 12, 0.32);
+}
+
+.mod-ico svg {
+  width: 18px;
+  height: 18px;
+}
+
+.mod-list b {
+  display: block;
+  font-size: 14px;
+  color: #ffe2a8;
+}
+
+.mod-list small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--bone);
+}
+
+.rules-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.rules-foot b {
+  color: var(--bone);
+}
+
+.rules-foot .reward {
+  color: var(--gold-hi);
+  font-weight: 700;
+}
+
+.diff-pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--bone);
+}
+
+.diff-pill.diff-hard {
+  border-color: rgba(255, 59, 78, 0.5);
+  color: #ffb0b8;
+}
+
+/* — duraklatma: mod ve kurallar — */
+.run-mods {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 12px;
+}
+
+.run-mods > small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.run-mods .mod-chips {
+  justify-content: center;
+}
+
+/* — sonuç: sonsuza devam ve ödül satırı — */
+.card-actions [data-act='continueEndless'] {
+  gap: 8px;
+}
+
+.card-actions [data-act='continueEndless'] svg {
+  width: 20px;
+  height: 20px;
+  fill: #241605;
+}
+
+.card-actions [data-act='continueEndless'] svg .i-hi {
+  fill: #fff2c8;
+}
+
+.reward-lines .bonus {
+  color: var(--gold-hi);
+  font-weight: 700;
+}
+
+/* — oyun: kural yüzünden kilitli düğmeler — */
+.maxed.rule {
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.btn-sell.locked {
+  opacity: 0.55;
+}
+
+/* — geniş düzen: solda mod kartları, sağda sınavlar (iki sütunlu ızgara) — */
+.wide .modes-body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr);
+  column-gap: 32px;
+  overflow: hidden;
+}
+
+.wide .modes-col,
+.wide .trials-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 6px;
+}
+
+.wide .trials-col .shop-section {
+  margin-top: 0;
+}
+
+.wide .challenge-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.wide .challenge-card {
+  height: 100%;
+}
+
+.wide .ch-foot {
+  margin-top: auto;
+}
+
+/* Sonsuz Gece sonu: başlık iki kelime, telefonda tek satıra sığsın */
+.end-card.endless .end-title {
+  font-size: clamp(30px, calc(var(--stage-w) * 0.095), 42px);
+}
+
+/* Kısa telefonlar (≤ 700px boy): ana menüde Meydan Okumalar ile bir sıra arttı, her şey sığsın */
+@media (max-aspect-ratio: 7/10) and (max-height: 700px) {
+  .title-block {
+    padding-top: calc(var(--safe-t) + 3vh);
+  }
+
+  .logo img {
+    width: min(calc(var(--stage-w) * 0.62), 300px, 34vh); /* sağ üstteki altın çipine değmesin */
+  }
+
+  .tagline {
+    margin-top: 6px;
+  }
+
+  .main-bottom {
+    padding-top: 20px;
+    gap: 9px;
+  }
+
+  .menu-actions {
+    gap: 8px;
+  }
+
+  .menu-actions .menu-btn {
+    min-height: 44px;
+  }
+
+  .menu-actions .menu-btn.small {
+    min-height: 40px;
+  }
+}

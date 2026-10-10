@@ -36,16 +36,26 @@
  *  EKONOMİ: Oyun içi para birimi RUH'tur (öldürmeler, dalga bonusları,
  *    Ruh Kuyusu). Kule kurma/yükseltme ve yetenekler ruhla ödenir. Kalıcı
  *    ALTIN yalnızca oyun sonunda kazanılır ve oyun dışı çarşıda harcanır (meta.js).
+ *
+ *  MODLAR VE KURALLAR (1.5.0, config bölüm 6b):
+ *    Sonsuz Gece'de 30. dalgadan sonraki dalgalar bölümün dalgalarından
+ *    türetilir (waveDef); oyun yalnızca yenilgiyle biter. Kurallar (run.mods)
+ *    ruhu, hızı, zırhı, kalabalığı, menzili, yetenekleri, satışı, ustalığı ve
+ *    kalenin canını değiştirir. Kâbus ve "Öfkeli Patronlar": patronlar kükrer ve
+ *    öfkelenir (BOSS_WRATH). Kâbus ve geç Sonsuz Gece: seçkin düşmanlar (ELITE).
+ *  HARİTA OLAYLARI (bölüm 12b): her bölümün kendi olayı, savaş sürerken arada bir
+ *    uyarıyla patlak verir (MAP_EVENTS). Etkileri run.effects'te yaşar, kayda girmez.
  * ========================================================================== */
 
 import {
   TOWERS, TOWER_STAT_DEFAULTS, ENEMIES, WAVE_RULES, SCALING, DIFFICULTIES,
-  ECONOMY, COMBAT, FEEL, CASTLE, SKILLS, AUTO_WAVE, MAP_ORDER,
+  ECONOMY, COMBAT, FEEL, CASTLE, SKILLS, AUTO_WAVE, MAP_ORDER, WAVE_COUNT,
+  MODIFIERS, ENDLESS, ELITE, BOSS_WRATH, MAP_EVENTS, EVENT_RULES,
 } from './config.js';
-import { dist2, rng, samplePolyline, rotateTowards, angleDelta, damp, approach, createPool, lerp } from './utils.js';
+import { dist2, rng, samplePolyline, rotateTowards, angleDelta, damp, approach, createPool, lerp, clamp } from './utils.js';
 import { EV, emit } from './events.js';
 import {
-  state, newRun, restoreRun, createTower, placeTower, removeTower, isBuildable, isUnlocked,
+  state, newRun, restoreRun, createTower, placeTower, removeTower, isBuildable, isUnlocked, hasMod,
 } from './state.js';
 import { castleStats, castleLevel, loadout, inLoadout } from './meta.js';
 
@@ -124,7 +134,49 @@ const AIMS = { archer: true, mortar: true, lance: true, flame: true, hunter: tru
  * 2. EKONOMİ SORGULARI (arayüz için)
  * ------------------------------------------------------------------------ */
 const diffOf = () => DIFFICULTIES[state.run.difficulty];
-const wavesOf = () => state.map.waves;
+
+/** Kurallardan gelen ruh çarpanı ("Kıt Ruh"). */
+const soulMult = () => (hasMod('scarce') ? MODIFIERS.scarce.souls : 1);
+
+/** Son dalganın numarası: bölüm 30, Sonsuz Gece sınırsız (Infinity). */
+const lastWave = () => (state.run && state.run.mode === 'endless' ? Infinity : state.map.waves.length);
+
+/*
+ * Sonsuz Gece dalgaları (n > 30) bölümün kendi dalgalarından türetilir; aynı n
+ * hep aynı dalgayı verir (kayıttan devamda da). Her 10. dalga bölümün 10., 20.
+ * ve 30. dalgasının patronu sırayla (yankı değil, tam güçte); arada 11–29.
+ * dalgalar (20. hariç) döner. Sıradan gruplar dalga başına ENDLESS.countGrowth
+ * kalabalıklaşır (en çok countMax kat), aralıkları da biraz sıklaşır.
+ */
+const endlessWaves = new Map();
+const LOOP = [11, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 26, 27, 28, 29];
+
+function makeEndlessWave(n) {
+  const waves = state.map.waves;
+  const k = n - WAVE_COUNT;
+  const grow = Math.min(ENDLESS.countMax, 1 + ENDLESS.countGrowth * k);
+  const gapK = 1 / Math.sqrt(grow);
+  let src;
+  if (n % 10 === 0) src = waves[(((n / 10) - 1) % 3 + 1) * 10 - 1];
+  else src = waves[LOOP[(k - 1 - Math.floor((k - 1) / 10)) % LOOP.length] - 1];
+  const groups = src.groups.map((gr) => (ENEMIES[gr.type].boss
+    ? { ...gr, echo: 0 }
+    : { ...gr, echo: 0, count: Math.ceil(gr.count * grow), gap: gr.gap * gapK }));
+  return { tag: src.tag, name: '', groups };
+}
+
+/** n. dalganın tanımı (yoksa null). */
+function waveDef(n) {
+  const waves = state.map.waves;
+  if (n >= 1 && n <= waves.length) return waves[n - 1];
+  if (n < 1 || state.run.mode !== 'endless') return null;
+  let w = endlessWaves.get(n);
+  if (!w) {
+    w = makeEndlessWave(n);
+    endlessWaves.set(n, w);
+  }
+  return w;
+}
 
 /** Yükseltme seçenekleri: sıradaki seviye, ustalık seçimi ya da null (tam). */
 export function upgradeOptions(t) {
@@ -134,6 +186,7 @@ export function upgradeOptions(t) {
     return { kind: 'level', cost: def.levels[t.level + 1].cost, next: towerStats(t.type, t.level + 1) };
   }
   if (t.mastery < 0) {
+    if (hasMod('nomastery')) return null; // "Ustasız" kuralı: kule 3. seviyede kalır
     return {
       kind: 'mastery',
       options: def.masteries.map((m, i) => ({
@@ -154,12 +207,12 @@ export function sellValue(t) {
 export function earlyBonus() {
   const run = state.run;
   if (!run || run.countdown === null) return 0;
-  return Math.round(Math.max(0, run.countdown) * ECONOMY.earlyCallPerSecond);
+  return Math.round(Math.max(0, run.countdown) * ECONOMY.earlyCallPerSecond * soulMult());
 }
 
 /** Dalga temizleme bonusu (zorlukla ölçeklenir). */
 function clearBonus(n) {
-  return Math.round((ECONOMY.waveClearBase + ECONOMY.waveClearPerWave * n) * diffOf().souls);
+  return Math.round((ECONOMY.waveClearBase + ECONOMY.waveClearPerWave * n) * diffOf().souls * soulMult());
 }
 
 /** Bir hücreden verilen menzilde yolun kaç hücresi görülüyor (kurulum önizlemesi). */
@@ -176,7 +229,7 @@ export function pathCoverage(c, r, range) {
 
 /** Dalga önizlemesi: { n, tag, name, groups:[{type,count}], boss } */
 export function waveInfo(n) {
-  const w = state.map ? wavesOf()[n - 1] : null;
+  const w = state.map && state.run ? waveDef(n) : null;
   if (!w) return null;
   const counts = new Map();
   for (const g of w.groups) counts.set(g.type, (counts.get(g.type) ?? 0) + g.count);
@@ -185,17 +238,23 @@ export function waveInfo(n) {
   return { n, tag: w.tag, name: w.name ?? '', groups, boss: bossGroup ? bossGroup.type : null };
 }
 
-export const totalWaves = () => (state.map ? wavesOf().length : 0);
+/** Toplam dalga: bölümde 30, Sonsuz Gece'de Infinity. */
+export const totalWaves = () => (state.map && state.run ? lastWave() : 0);
 
 /* --------------------------------------------------------------------------
  * 3. OYUN BAŞLATMA
  * ------------------------------------------------------------------------ */
-/** Yeni oyun kurar. mapId verilmezse ilk bölüm. */
-export function newGame(difficultyId, mapId = MAP_ORDER[0]) {
-  newRun(difficultyId, mapId);
+/**
+ * Yeni oyun kurar. mapId verilmezse ilk bölüm.
+ * opt: { mode, mods, challenge, daily } (Meydan Okumalar; yoksa bölüm oyunu)
+ */
+export function newGame(difficultyId, mapId = MAP_ORDER[0], opt = null) {
+  newRun(difficultyId, mapId, opt);
+  endlessWaves.clear();
   setupKeep(false);
   projectiles.length = 0;
   wasClear = true;
+  state.run.eventT = nextEventDelay(true);
   emit(EV.RUN_START, false, state.run.mapId);
   emit(EV.SOULS, state.run.souls, 0);
   emit(EV.LIVES, state.run.lives, 0);
@@ -205,10 +264,12 @@ export function newGame(difficultyId, mapId = MAP_ORDER[0]) {
 /** Kayıttan devam eder. @returns {boolean} kayıt geçerliyse true */
 export function loadGame(data) {
   if (!restoreRun(data)) return false;
+  endlessWaves.clear();
   setupKeep(true);
   projectiles.length = 0;
   wasClear = true;
   const run = state.run;
+  run.eventT = nextEventDelay(true);
   for (const t of run.towers) if (TOWERS[t.type].economy) t.genT = statsOf(t).soulEvery;
   emit(EV.RUN_START, true, run.mapId);
   emit(EV.SOULS, run.souls, 0);
@@ -233,6 +294,10 @@ function setupKeep(fromSave) {
     run.souls = cs.startSouls;
     run.ruined = cs.ruined;
   }
+  if (hasMod('glass')) { // "Cam Kale": tek can, Surlar ve onarım sayılmaz
+    run.maxLives = MODIFIERS.glass.lives;
+    run.lives = Math.min(run.lives, run.maxLives);
+  }
   const up = CASTLE.upgrades.ballista;
   const damageMult = (1 + castleLevel('ballista') * up.damage) * (run.ruined ? CASTLE.ruined.damage : 1);
   const { castle } = state.map;
@@ -245,7 +310,7 @@ function setupKeep(fromSave) {
     kills: 0, damage: 0, // bu oyundaki payı (panelde görünür; kayda girmez)
   };
   const saved = run.savedSkills ?? [];
-  run.skills = loadout().map((sk) => {
+  run.skills = hasMod('noskills') ? [] : loadout().map((sk) => { // "Sessiz Burçlar": yetenek yok
     const prev = saved.find((k) => k.side === sk.side && k.id === sk.id);
     return { ...sk, freeUsed: prev ? prev.freeUsed : false, cd: 0, cdMax: SKILLS[sk.id].cooldown * cs.cooldownMult };
   });
@@ -324,10 +389,22 @@ export function upgrade(t, masteryIndex = -1) {
   return true;
 }
 
+/**
+ * Kule satılabilir mi? "Satış Yok" kuralında savaşa girmiş kule satılamaz
+ * (bu hazırlıkta kurulan, henüz savaşmamış kule geri alınabilir).
+ * reason: 'over' | 'rule'
+ */
+export function canSell(t) {
+  const run = state.run;
+  if (!run || run.over || !run.towerById.has(t.id)) return { ok: false, reason: 'over' };
+  if (hasMod('nosell') && !t.fresh) return { ok: false, reason: 'rule' };
+  return { ok: true, reason: '' };
+}
+
 /** Kuleyi satar. @returns {number} iade (satılamazsa 0) */
 export function sell(t) {
   const run = state.run;
-  if (!run || run.over || !run.towerById.has(t.id)) return 0;
+  if (!canSell(t).ok) return 0;
   const refund = sellValue(t);
   removeTower(t);
   run.souls += refund;
@@ -346,7 +423,7 @@ export function setTargetMode(t, mode) {
 /** Dalga şu an çağrılabilir mi? (ilk dalga, yüklenen oyun ya da geri sayım) */
 export function canCallWave() {
   const run = state.run;
-  if (!run || run.over || run.wave >= wavesOf().length) return false;
+  if (!run || run.over || run.wave >= lastWave()) return false;
   if (run.countdown !== null) return true;
   return run.spawners.length === 0; // oyuncunun başlatmasını bekleyen durum
 }
@@ -392,9 +469,12 @@ function startWave(bonus) {
   const n = run.wave;
   run.countdown = null;
   let total = 0;
-  for (const g of wavesOf()[n - 1].groups) {
-    run.spawners.push({ wave: n, type: g.type, left: g.count, gap: g.gap, t: g.at, path: g.path, echo: g.echo || 0 });
-    total += g.count;
+  const horde = hasMod('horde') ? MODIFIERS.horde.count : 1; // "Kalabalık": sıradan gruplar büyür
+  for (const g of waveDef(n).groups) {
+    const count = ENEMIES[g.type].boss ? g.count : Math.ceil(g.count * horde);
+    const gap = horde > 1 && !ENEMIES[g.type].boss ? g.gap / Math.sqrt(horde) : g.gap;
+    run.spawners.push({ wave: n, type: g.type, left: count, gap, t: g.at, path: g.path, echo: g.echo || 0 });
+    total += count;
   }
   run.waveLeft.set(n, (run.waveLeft.get(n) ?? 0) + total);
   for (const t of run.towers) t.fresh = false;
@@ -441,11 +521,10 @@ function updateSpawners(dt) {
 /** Bir dalganın bütün düşmanları doğdu → sıradakinin geri sayımı başlar. */
 function waveSpawned(n) {
   const run = state.run;
-  const waves = wavesOf();
   emit(EV.WAVE_SPAWNED, n);
-  if (n !== run.wave || n >= waves.length) return;
+  if (n !== run.wave || n >= lastWave()) return;
   const next = n + 1;
-  const bossNext = waves[next - 1].groups.some((g) => ENEMIES[g.type].boss);
+  const bossNext = waveDef(next).groups.some((g) => ENEMIES[g.type].boss);
   run.countdown = bossNext ? WAVE_RULES.preBossTime : WAVE_RULES.interWaveTime;
   emit(EV.WAVE_PREP, next, run.countdown);
 }
@@ -511,9 +590,18 @@ function spawnEnemy(type, wave, d, counted, path = 0, echo = 0) {
   const lane = map.polys[path] ? path : 0;
   const poly = map.polys[lane];
   const kind = def.boss ? SCALING.bossHp(wave) : SCALING.hordeHp(wave) * map.horde; // sıradan düşman ile patronun ayrı eğrisi
-  const hp = def.hp * SCALING.hp(wave) * kind * diff.hp * map.hp * (echo > 0 ? echo : 1);
+  // seçkin: yalnızca dalganın kendi düşmanları (yavru, çağrılan, patron değil)
+  const elite = !counted && !def.boss && !def.minion && wave >= ELITE.fromWave && rng.chance(eliteChance(wave));
+  const wrath = def.boss && (diff.wrath || hasMod('wrath'));
+  const deep = run.mode === 'endless' && wave > WAVE_COUNT ? (1 + ENDLESS.hpGrowth) ** (wave - WAVE_COUNT) : 1; // Sonsuz Gece
+  const hp = def.hp * SCALING.hp(wave) * kind * diff.hp * map.hp * (echo > 0 ? echo : 1)
+    * (elite ? ELITE.hp : 1) * (wrath ? BOSS_WRATH.hp : 1) * deep;
   const baseSouls = def.souls > 0 ? def.souls : echo > 0 ? WAVE_RULES.echoSouls : 0; // yankı patron da ödül bırakır
-  const souls = baseSouls > 0 ? Math.max(1, Math.round(baseSouls * SCALING.souls(wave) * diff.souls * map.souls)) : 0;
+  const souls = baseSouls > 0
+    ? Math.max(1, Math.round(baseSouls * SCALING.souls(wave) * diff.souls * map.souls * soulMult() * (elite ? ELITE.souls : 1)))
+    : 0;
+  const plate = hasMod('armored') ? MODIFIERS.armored.armor : 0; // "Demir Ordu"
+  const pace = (hasMod('swift') ? MODIFIERS.swift.speed : 1) * (elite ? ELITE.speed : 1);
   const dd = Math.min(Math.max(0, d), poly.length - 0.05);
   const e = {
     id: run.nextId++,
@@ -526,9 +614,13 @@ function spawnEnemy(type, wave, d, counted, path = 0, echo = 0) {
     hp,
     maxHp: hp,
     hpShown: hp,
-    armor: def.armor,
-    resist: def.resist,
-    speed: def.speed * SCALING.speed(wave),
+    armor: plate > 0 ? Math.min(0.85, def.armor + plate) : def.armor,
+    resist: plate > 0 ? Math.min(0.85, def.resist + plate) : def.resist,
+    speed: def.speed * SCALING.speed(wave) * pace,
+    elite,                       // seçkin (Kâbus, geç Sonsuz Gece): daha dayanıklı, iki kat ruh
+    wrath,                       // öfkeli patron: kükrer, yarı canda hızlanır
+    raged: false,
+    roarT: wrath ? BOSS_WRATH.roar.first : 0,
     v: 0,
     souls,
     lives: echo > 0 ? Math.min(def.lives, WAVE_RULES.echoLives) : def.lives,
@@ -671,6 +763,10 @@ function updateEnemy(e, dt) {
     e.enraged = true;
     emit(EV.STATUS, e, 'enrage');
   }
+  if (e.wrath && !e.raged && e.hp < e.maxHp * BOSS_WRATH.rage.below) {
+    e.raged = true;
+    emit(EV.STATUS, e, 'enrage');
+  }
 
   // — yetenekler (sersemlemiş/donmuş/zamanı durmuş düşman kullanamaz) —
   if (!disabled(e)) {
@@ -685,6 +781,7 @@ function updateEnemy(e, dt) {
     if (def.blizzard) updateBlizzard(e, def, dt);
     if (def.hex) updateHex(e, def, dt);
     if (def.harden) updateHarden(e, def, dt);
+    if (e.wrath) updateRoar(e, dt);
   }
 
   // — hareket —
@@ -694,6 +791,7 @@ function updateEnemy(e, dt) {
     if (e.boss) s *= COMBAT.bossSlowFactor;
     mult = (1 - Math.min(s, COMBAT.slowCap)) * e.hasteMult;
     if (e.enraged) mult *= def.enrage.speed;
+    if (e.raged) mult *= BOSS_WRATH.rage.speed;
     if (e.phased && def.phase.speed) mult *= def.phase.speed;
   }
   e.v = e.speed * mult;
@@ -898,6 +996,24 @@ function updateHarden(e, def, dt) {
   emit(EV.ABILITY, e, 'harden', e.x, e.y, def.harden.duration);
 }
 
+/** Öfkeli patron (Kâbus / "Öfkeli Patronlar"): arada bir kükrer, yakındaki kuleler susar. */
+function updateRoar(e, dt) {
+  e.roarT -= dt;
+  if (e.roarT > 0) return;
+  const { every, radius, duration } = BOSS_WRATH.roar;
+  e.roarT = every;
+  const r2 = radius * radius;
+  for (const t of state.run.towers) if (dist2(e.x, e.y, t.x, t.y) <= r2) silenceTower(t, duration, 'roar');
+  emit(EV.BOSS_ABILITY, e, 'roar', e.x, e.y, radius);
+}
+
+/** Seçkin doğma olasılığı: zorluk + Sonsuz Gece'de 30. dalgadan sonra artan pay. */
+function eliteChance(w) {
+  let p = diffOf().elites;
+  if (state.run.mode === 'endless' && w > WAVE_COUNT) p += Math.min(ENDLESS.eliteMax, (w - WAVE_COUNT) * ENDLESS.elitePerWave);
+  return p;
+}
+
 /** Can eşiklerinde kalkanlanır, durur ve çağırır (Gece Hükümdarı, Kara Hidra, Kadim Boşluk). */
 function checkShield(e) {
   const def = ENEMIES[e.type];
@@ -1070,7 +1186,33 @@ function endRun(victory) {
     lives: run.lives,
     difficulty: run.difficulty,
     mapId: run.mapId,
+    mode: run.mode,
+    mods: [...run.mods],
+    challenge: run.challenge,
+    daily: run.daily,
+    carry: run.carry ? { ...run.carry } : null,
   });
+}
+
+/**
+ * Kazanılan bölüm Sonsuz Gece olarak sürer: aynı kuleler, aynı can; dalgalar
+ * 30'dan sonra biter. Zaferin ödülü ve rekoru zaten işlendi (carry: o ana kadarki
+ * dalga, patron ve öldürme; sonraki ödül yalnızca bunların üstünden).
+ * @returns {boolean} sürdürülebildiyse true
+ */
+export function continueEndless() {
+  const run = state.run;
+  if (!run || run.over !== 'victory' || run.mode !== 'campaign') return false;
+  run.carry = { waves: run.wave, bosses: run.stats.bossKills, kills: run.stats.kills };
+  run.mode = 'endless';
+  run.over = null;
+  run.countdown = null; // 31. dalgayı oyuncu başlatır
+  run.eventT = nextEventDelay(true);
+  wasClear = true;
+  emit(EV.RUN_CONTINUE);
+  emit(EV.WAVE_PREP, run.wave + 1, null);
+  emit(EV.SAVEPOINT);
+  return true;
 }
 
 /* --------------------------------------------------------------------------
@@ -1217,6 +1359,7 @@ function applyTowerAuras() {
       if (t.bRange < st.buffRange) t.bRange = st.buffRange;
     }
   }
+  if (hasMod('fog')) for (const t of towers) t.bRange += MODIFIERS.fog.range; // "Sis": bütün menziller kısa
 }
 
 function updateTower(t, dt, chill) {
@@ -1922,6 +2065,11 @@ function updateEffects(dt) {
       case 'meteor': keep = stepMeteor(fx, dt); break;
       case 'plague': keep = stepPlague(fx, dt); break;
       case 'vortex': keep = stepVortex(fx, dt); break;
+      case 'ev_rise': keep = stepRise(fx, dt); break;
+      case 'ev_blizzard': keep = stepBlizzard(fx, dt); break;
+      case 'ev_gas': keep = stepGas(fx, dt); break;
+      case 'ev_lava': keep = stepLava(fx, dt); break;
+      case 'ev_rift': keep = stepRift(fx, dt); break;
       default:
         fx.t += dt;
         keep = fx.t < fx.dur;
@@ -2002,6 +2150,293 @@ function stepVortex(fx, dt) {
 }
 
 /* --------------------------------------------------------------------------
+ * 12b. HARİTA OLAYLARI — her bölümün kendine özgü olayı (config MAP_EVENTS)
+ *  Yalnızca savaş sürerken (sahada ya da doğmayı bekleyen düşman varken) ve
+ *  EVENT_RULES.fromWave'den sonra sayaç işler. Olay önce "uyarı" verir
+ *  (haritada işaret, kısa mesaj), warn sn sonra patlak verir. Zorluğun
+ *  events.rate'i sıklığı, events.power'ı oyuncuya zor gelen yanını büyütür;
+ *  "Olay Fırtınası" (storm) kuralı sıklaştırır. Etkiler run.effects'te
+ *  ('ev_*') yaşar; render.js çizer, particles/audio olayı dinler.
+ * ------------------------------------------------------------------------ */
+function eventRate() {
+  const base = diffOf().events.rate * (hasMod('storm') ? MODIFIERS.storm.events : 1);
+  return Math.min(EVENT_RULES.maxRate, base);
+}
+
+/** Sıradaki olaya kalan savaş süresi (ilki biraz daha erken gelir). */
+function nextEventDelay(first = false) {
+  const ev = state.map && MAP_EVENTS[state.map.event];
+  if (!ev) return Infinity;
+  const t = rng.range(ev.every[0], ev.every[1]) / eventRate();
+  return first ? t * EVENT_RULES.firstDelay : t;
+}
+
+function updateMapEvent(dt) {
+  const run = state.run;
+  const ev = MAP_EVENTS[state.map.event];
+  if (!ev || run.wave < (ev.fromWave ?? EVENT_RULES.fromWave) || fieldClear()) return;
+  run.eventT -= dt;
+  if (run.eventT > 0) return;
+  run.eventT = nextEventDelay();
+  if (run.effects.some((fx) => fx.kind === `ev_${ev.id}`)) return; // öncekisi sürüyor: bu sefer atla
+  const power = diffOf().events.power;
+  switch (ev.id) {
+    case 'rise': startRise(ev, power); break;
+    case 'blizzard': startBlizzard(ev, power); break;
+    case 'gas': startGas(ev, power); break;
+    case 'lava': startLava(ev, power); break;
+    case 'rift': startRift(ev, power); break;
+    default: break;
+  }
+}
+
+/** Bir noktaya en yakın yol noktası: { lane, d, x, y }. */
+function nearestOnPath(x, y) {
+  let best = null;
+  let bd = Infinity;
+  state.map.polys.forEach((poly, lane) => {
+    for (const sg of poly.segs) {
+      const t = clamp((x - sg.x1) * sg.dx + (y - sg.y1) * sg.dy, 0, sg.len);
+      const px = sg.x1 + sg.dx * t;
+      const py = sg.y1 + sg.dy * t;
+      const d2 = dist2(x, y, px, py);
+      if (d2 < bd) {
+        bd = d2;
+        best = { lane, d: sg.start + t, x: px, y: py };
+      }
+    }
+  });
+  return best;
+}
+
+/**
+ * Olayın düşeceği yol hücresi. Yarı yarıya rastgele, yarı yarıya kuleleri en
+ * çok kapsayan hücre (olayın iki yanı da hissedilsin). Geçide ve kaleye çok
+ * yakın hücreler seçilmez. avoid: önceden seçilmiş noktalar (üst üste düşmesin).
+ */
+function eventSpot(radius, avoid = []) {
+  const map = state.map;
+  const towers = state.run.towers;
+  const reach = (radius + 0.3) * (radius + 0.3);
+  const far = avoid.length ? (radius * 1.6) ** 2 : 0;
+  const cells = map.pathCells.filter(([c, r]) => r >= 1 && r <= map.rows - 3
+    && avoid.every((a) => dist2(c + 0.5, r + 0.5, a.x, a.y) > far));
+  const list = cells.length ? cells : map.pathCells;
+  let pick = rng.pick(list);
+  if (towers.length && rng.chance(0.5)) {
+    let top = -1;
+    let best = [];
+    for (const cell of list) {
+      const x = cell[0] + 0.5;
+      const y = cell[1] + 0.5;
+      let n = 0;
+      for (const t of towers) if (dist2(x, y, t.x, t.y) <= reach) n++;
+      if (n > top) {
+        top = n;
+        best = [cell];
+      } else if (n === top) best.push(cell);
+    }
+    pick = rng.pick(best);
+  }
+  return { x: pick[0] + 0.5, y: pick[1] + 0.5 };
+}
+
+/** Şu an süren en yeni dalga (olaydan doğanlar onun sayısına katılır; temizlenmiş dalga yeniden açılmaz). */
+function activeWave() {
+  let n = 0;
+  for (const k of state.run.waveLeft.keys()) if (k > n) n = k;
+  return n || Math.max(1, state.run.wave);
+}
+
+/* — Kül Vadisi: Ölüler Uyanıyor — */
+function startRise(ev, power) {
+  const map = state.map;
+  const run = state.run;
+  // kaleye çok yakın mezar seçilmez: kalkanlar savunmayı görmeden kapıya varmasın
+  const graves = map.decor.filter((d) => d.kind === 'grave').map((d) => ({ x: d.c + 0.5, y: d.r + 0.5 }))
+    .filter((p) => {
+      const at = nearestOnPath(p.x, p.y);
+      return map.polys[at.lane].length - at.d >= 4.5;
+    });
+  const spot = graves.length ? rng.pick(graves) : eventSpot(0.5);
+  const at = nearestOnPath(spot.x, spot.y);
+  const count = Math.max(1, Math.round((ev.count + Math.floor(run.wave / ev.perWaves)) * power));
+  run.effects.push({ kind: 'ev_rise', x: spot.x, y: spot.y, px: at.x, py: at.y, lane: at.lane, d: at.d, t: 0, warn: ev.warn, count, done: false });
+  emit(EV.MAP_EVENT, 'rise', 'warn', spot.x, spot.y, ev.warn);
+}
+
+function stepRise(fx, dt) {
+  fx.t += dt;
+  if (!fx.done && fx.t >= fx.warn) {
+    fx.done = true;
+    const wave = activeWave();
+    const ev = MAP_EVENTS.rise;
+    for (let i = 0; i < fx.count; i++) {
+      // yeni kalkmış, çürük iskelet: az can, zırhsız; mezar eşyası taşır (fazla ruh)
+      const e = spawnEnemy(ev.type, wave, fx.d - i * 0.35, true, fx.lane);
+      e.maxHp *= ev.hp;
+      e.hp = e.maxHp;
+      e.hpShown = e.maxHp;
+      e.armor = Math.max(0, e.armor - ENEMIES[ev.type].armor + ev.armor); // "Demir Ordu" eki kalır
+      e.souls = Math.round(e.souls * ev.souls);
+    }
+    emit(EV.MAP_EVENT, 'rise', 'act', fx.px, fx.py, fx.count);
+  }
+  return fx.t < fx.warn + 0.9;
+}
+
+/* — Ayaz Geçidi: Tipi — */
+function startBlizzard(ev, power) {
+  const run = state.run;
+  const dur = ev.duration * power;
+  const rate = clamp(1 - (1 - ev.towerRate) * power, 0.4, 1);
+  run.effects.push({ kind: 'ev_blizzard', t: 0, warn: ev.warn, dur, rate, slow: ev.enemySlow, tick: 0, started: false });
+  const { castle } = state.map;
+  emit(EV.MAP_EVENT, 'blizzard', 'warn', castle.x, castle.y, ev.warn);
+}
+
+function stepBlizzard(fx, dt) {
+  const run = state.run;
+  fx.t += dt;
+  if (fx.t < fx.warn) return true;
+  if (!fx.started) {
+    fx.started = true;
+    const before = run.chill > 0 ? run.chillRate : 1; // Kış Kraliçesi'nin tipisi sürüyorsa en yavaşı geçer
+    run.chill = Math.max(run.chill, fx.dur);
+    run.chillRate = Math.min(before, fx.rate);
+    const { castle } = state.map;
+    emit(EV.MAP_EVENT, 'blizzard', 'act', castle.x, castle.y, fx.dur);
+  }
+  // tipi sürerken yeni gelenler de yavaşlar
+  fx.tick -= dt;
+  if (fx.tick <= 0) {
+    fx.tick = 0.5;
+    for (const e of run.enemies) {
+      if (!e.alive || immuneTo(e, 'slow')) continue;
+      e.slow = Math.max(e.slow, fx.slow);
+      e.slowT = Math.max(e.slowT, 0.6);
+    }
+  }
+  if (fx.t >= fx.warn + fx.dur) {
+    emit(EV.MAP_EVENT, 'blizzard', 'end', 0, 0, 0);
+    return false;
+  }
+  return true;
+}
+
+/* — Kara Bataklık: Bataklık Gazı — */
+function startGas(ev, power) {
+  const spot = eventSpot(ev.radius);
+  state.run.effects.push({
+    kind: 'ev_gas', x: spot.x, y: spot.y, t: 0, warn: ev.warn, dur: ev.duration, radius: ev.radius,
+    dps: ev.dps * SCALING.hp(waveNow()), silence: ev.silence * power, burst: false, tick: 0,
+  });
+  emit(EV.MAP_EVENT, 'gas', 'warn', spot.x, spot.y, ev.warn);
+}
+
+function stepGas(fx, dt) {
+  fx.t += dt;
+  if (fx.t < fx.warn) return true;
+  if (!fx.burst) {
+    fx.burst = true;
+    const r2 = (fx.radius + 0.15) ** 2;
+    for (const t of state.run.towers) if (dist2(fx.x, fx.y, t.x, t.y) <= r2) silenceTower(t, fx.silence, 'gas');
+    emit(EV.MAP_EVENT, 'gas', 'act', fx.x, fx.y, fx.radius);
+  }
+  if (fx.t >= fx.warn + fx.dur) {
+    emit(EV.MAP_EVENT, 'gas', 'end', fx.x, fx.y, fx.radius);
+    return false;
+  }
+  // içindekiler zehirlenir: saf hasar, yenilenme durur (Veba Bulutu gibi)
+  forEachInRadius(fx.x, fx.y, fx.radius, true, (e) => {
+    e.dotP += hurt(e, fx.dps * dt, 'pure', null, false, true);
+    if (!e.alive) return;
+    if (e.pStacks <= 0) {
+      e.pStacks = 1;
+      e.pMax = Math.max(e.pMax, 1);
+    }
+    e.pT = Math.max(e.pT, 0.4);
+  });
+  return true;
+}
+
+/* — Kor Ocakları: Lav Sıçraması — */
+function startLava(ev, power) {
+  const map = state.map;
+  const pools = map.decor.filter((d) => d.kind === 'lava');
+  const globs = ev.globs + (power > 1.2 ? 1 : 0);
+  const dmg = ev.damage * SCALING.hp(waveNow());
+  const taken = [];
+  for (let i = 0; i < globs; i++) {
+    const src = pools.length ? rng.pick(pools) : { c: rng.int(0, map.cols - 1), r: 0 };
+    const spot = eventSpot(ev.radius, taken);
+    taken.push(spot);
+    state.run.effects.push({
+      kind: 'ev_lava', sx: src.c + 0.5, sy: src.r + 0.5, x: spot.x, y: spot.y,
+      t: -i * 0.35, warn: ev.warn, radius: ev.radius, dmg,
+      burn: { burnDps: dmg * ev.burn, burnDur: ev.burnDur }, silence: ev.silence * power,
+    });
+  }
+  emit(EV.MAP_EVENT, 'lava', 'warn', taken[0].x, taken[0].y, ev.warn);
+}
+
+function stepLava(fx, dt) {
+  fx.t += dt;
+  if (fx.t < fx.warn) return true;
+  forEachInRadius(fx.x, fx.y, fx.radius, false, (e, d) => {
+    hurt(e, fx.dmg * (1 - 0.35 * (d / fx.radius)), 'magic', null);
+    applyBurn(e, fx.burn, null);
+  });
+  const r2 = (fx.radius + 0.15) ** 2;
+  for (const t of state.run.towers) if (dist2(fx.x, fx.y, t.x, t.y) <= r2) silenceTower(t, fx.silence, 'fire');
+  emit(EV.MAP_EVENT, 'lava', 'act', fx.x, fx.y, fx.radius);
+  return false;
+}
+
+/* — Boşluk Tahtı: Boşluk Yarığı — */
+function startRift(ev, power) {
+  const polys = state.map.polys;
+  const lane = rng.int(0, polys.length - 1);
+  const poly = polys[lane];
+  const d = poly.length * rng.range(0.25, 0.72);
+  const at = samplePolyline(poly, d, { x: 0, y: 0, angle: 0, seg: 0 });
+  state.run.effects.push({
+    kind: 'ev_rift', x: at.x, y: at.y, t: 0, warn: ev.warn, dur: ev.duration, radius: ev.radius,
+    push: ev.push, ward: ev.ward * power, hit: new Set(), opened: false,
+  });
+  emit(EV.MAP_EVENT, 'rift', 'warn', at.x, at.y, ev.warn);
+}
+
+function stepRift(fx, dt) {
+  fx.t += dt;
+  if (fx.t < fx.warn) return true;
+  if (!fx.opened) {
+    fx.opened = true;
+    emit(EV.MAP_EVENT, 'rift', 'act', fx.x, fx.y, fx.radius);
+  }
+  if (fx.t >= fx.warn + fx.dur) {
+    emit(EV.MAP_EVENT, 'rift', 'end', fx.x, fx.y, fx.radius);
+    return false;
+  }
+  const r2 = fx.radius * fx.radius;
+  for (const e of state.run.enemies) {
+    if (!e.alive || e.boss || fx.hit.has(e.id) || dist2(e.x, e.y, fx.x, fx.y) > r2) continue;
+    fx.hit.add(e.id);
+    const ox = e.x;
+    const oy = e.y;
+    pushBack(e, fx.push);
+    const amount = e.maxHp * fx.ward;
+    if (e.ward < amount) {
+      e.ward = amount;
+      e.wardMax = amount;
+    }
+    e.wardT = Math.max(e.wardT, 6);
+    emit(EV.MAP_EVENT, 'rift', 'hit', ox, oy, e);
+  }
+  return true;
+}
+
+/* --------------------------------------------------------------------------
  * 13. ANA GÜNCELLEME — sabit adım
  * ------------------------------------------------------------------------ */
 export function update(dt) {
@@ -2024,6 +2459,7 @@ export function update(dt) {
   for (const t of run.towers) updateTower(t, dt, chill);
   updateKeep(dt);
   updateProjectiles(dt);
+  updateMapEvent(dt);
   updateEffects(dt);
 
   // ölüleri ayıkla (sıra korunur)
@@ -2034,7 +2470,7 @@ export function update(dt) {
 
   // saha temizlendi mi?
   const clear = fieldClear();
-  if (clear && run.wave >= wavesOf().length) {
+  if (clear && run.wave >= lastWave()) {
     endRun(true);
     return;
   }

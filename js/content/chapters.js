@@ -26,6 +26,9 @@
  *  (patronlar hariç; ilk bölümlerde biraz yüksek, en zor bölümde düşük),
  *  souls → ruh ödülü, reward → oyun sonu altını.
  *  unlocks: bölüm AÇILINCA çarşıya gelen kule ve yetenekler.
+ *  OLAY: event → bölümün kendine özgü harita olayı (config MAP_EVENTS kimliği):
+ *  Kül Vadisi mezarlardan kalkan ölüler (mezar süsleri), Ayaz Geçidi tipi, Kara
+ *  Bataklık gaz kabarcığı, Kor Ocakları lav sıçraması (lav süsleri), Boşluk Tahtı yarık.
  * ========================================================================== */
 
 /**
@@ -60,6 +63,7 @@ export const CHAPTER_DEFS = [
     ],
     hp: 1, horde: 1.08, souls: 1, reward: 1,
     threats: ['armor', 'regen'], // asıl tehdit etiketleri (dalgaların can payına göre; metin: lang threats.*, maps.*.threat)
+    event: 'rise', // harita olayı (config MAP_EVENTS)
     unlocks: { towers: [], skills: [] },
     theme: {
       ground: ['#0d0b11', '#15121b', '#1a1620'],
@@ -140,6 +144,7 @@ export const CHAPTER_DEFS = [
     ],
     hp: 1.05, horde: 1.04, souls: 1, reward: 1.25,
     threats: ['armor', 'fast', 'air'], // asıl tehdit etiketleri (dalgaların can payına göre; metin: lang threats.*, maps.*.threat)
+    event: 'blizzard', // harita olayı (config MAP_EVENTS)
     unlocks: { towers: ['lance', 'prism'], skills: ['thunder', 'timestop'] },
     theme: {
       ground: ['#0c1018', '#141b26', '#1a2230'],
@@ -220,6 +225,7 @@ export const CHAPTER_DEFS = [
     ],
     hp: 1.1, horde: 0.97, souls: 1, reward: 1.5,
     threats: ['regen', 'split', 'phase'], // asıl tehdit etiketleri (dalgaların can payına göre; metin: lang threats.*, maps.*.threat)
+    event: 'gas', // harita olayı (config MAP_EVENTS)
     unlocks: { towers: ['flame', 'well'], skills: ['plague', 'mend'] },
     theme: {
       ground: ['#080c08', '#101610', '#141a12'],
@@ -299,6 +305,7 @@ export const CHAPTER_DEFS = [
     ],
     hp: 1.25, horde: 1, souls: 1, reward: 1.75,
     threats: ['fireproof', 'armor', 'air'], // asıl tehdit etiketleri (dalgaların can payına göre; metin: lang threats.*, maps.*.threat)
+    event: 'lava', // harita olayı (config MAP_EVENTS)
     unlocks: { towers: ['hunter', 'bell'], skills: ['vortex', 'reaper'] },
     theme: {
       ground: ['#0e0808', '#170e0c', '#1c100c'],
@@ -379,6 +386,7 @@ export const CHAPTER_DEFS = [
     ],
     hp: 1.2, horde: 0.95, souls: 1.12, reward: 2,
     threats: ['armor', 'resist', 'blink'], // asıl tehdit etiketleri (dalgaların can payına göre; metin: lang threats.*, maps.*.threat)
+    event: 'rift', // harita olayı (config MAP_EVENTS)
     unlocks: { towers: [], skills: [] },
     theme: {
       ground: ['#07050c', '#0e0a16', '#120c1c'],

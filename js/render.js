@@ -611,7 +611,144 @@ function drawEffects() {
     else if (fx.kind === 'plague') drawPlague(fx, cell);
     else if (fx.kind === 'vortex') drawVortex(fx, cell);
     else if (fx.kind === 'reaper') drawReaper(fx, cell);
+    else if (fx.kind === 'ev_rise') drawEvRise(fx, cell);
+    else if (fx.kind === 'ev_gas') drawEvGas(fx, cell);
+    else if (fx.kind === 'ev_lava') drawEvLava(fx, cell);
+    else if (fx.kind === 'ev_rift') drawEvRift(fx, cell);
   }
+}
+
+/* — Harita olayları (1.5.0): uyarı işaretleri ve süren etkiler — */
+/** Uyarı halkası: kesik çizgili, nabız atan elips (olayın düşeceği yer). */
+function warnRing(x, y, r, color, k, cell) {
+  const pulse = 0.5 + 0.5 * Math.sin(time * 12);
+  g.strokeStyle = rgba(color, 0.4 + 0.45 * pulse * k);
+  g.lineWidth = Math.max(1.5, cell * 0.04);
+  g.setLineDash([cell * 0.16, cell * 0.11]);
+  g.lineDashOffset = -time * 24;
+  g.beginPath();
+  g.ellipse(x, y, r, r * 0.8, 0, 0, TAU);
+  g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = rgba(color, 0.06 + 0.12 * k);
+  g.fill();
+}
+
+/** Kül Vadisi: mezar kıpırdar, iskeletlerin çıkacağı yol noktası işaretlenir. */
+function drawEvRise(fx, cell) {
+  if (fx.t >= fx.warn) return;
+  identity();
+  const k = clamp(fx.t / fx.warn, 0, 1);
+  const shake = Math.sin(time * 40) * cell * 0.03 * k;
+  warnRing(sx(fx.x) + shake, sy(fx.y), cell * (0.35 + 0.2 * k), '#8aff7a', k, cell);
+  warnRing(sx(fx.px), sy(fx.py), cell * 0.45, '#8aff7a', k * 0.7, cell);
+  light(sx(fx.x), sy(fx.y), cell * (0.6 + 0.4 * k), '#7aff8a', 0.35 * k);
+}
+
+/** Kara Bataklık: önce kabaran kabarcık halkası, sonra yerde kıvrılan sarı-yeşil gaz. */
+function drawEvGas(fx, cell) {
+  identity();
+  const cx = sx(fx.x);
+  const cy = sy(fx.y);
+  const r = fx.radius * cell;
+  if (fx.t < fx.warn) {
+    warnRing(cx, cy, r, '#c6ff4a', clamp(fx.t / fx.warn, 0, 1), cell);
+    return;
+  }
+  const life = fx.t - fx.warn;
+  const a = clamp(life / 0.4, 0, 1) * clamp((fx.dur - life) / 0.8, 0, 1);
+  const grd = g.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
+  grd.addColorStop(0, `rgba(170,200,60,${0.34 * a})`);
+  grd.addColorStop(0.7, `rgba(110,140,40,${0.24 * a})`);
+  grd.addColorStop(1, 'rgba(60,80,20,0)');
+  g.fillStyle = grd;
+  g.beginPath();
+  g.ellipse(cx, cy, r, r * 0.8, 0, 0, TAU);
+  g.fill();
+  const sp = S.smokeSprite('#8aa83a');
+  for (let i = 0; i < 6; i++) {
+    const ang = -time * 0.5 + (i * TAU) / 6;
+    const rr = r * (0.3 + 0.28 * Math.sin(time * 1.1 + i * 1.7));
+    const size = r * 0.75;
+    g.globalAlpha = 0.28 * a;
+    g.drawImage(sp, cx + Math.cos(ang) * rr - size / 2, cy + Math.sin(ang) * rr * 0.8 - size / 2, size, size);
+  }
+  g.globalAlpha = 1;
+  light(cx, cy, r * 0.8, '#b6e04a', 0.25 * a);
+}
+
+/** Kor Ocakları: lav topu gölden yay çizerek uçar; düşeceği yer kızıl halkayla işaretli. */
+function drawEvLava(fx, cell) {
+  if (fx.t < 0) return; // sırasını bekleyen top
+  identity();
+  const k = clamp(fx.t / fx.warn, 0, 1);
+  const tx = sx(fx.x);
+  const ty = sy(fx.y);
+  warnRing(tx, ty, fx.radius * cell, '#ff4a1e', k, cell);
+  const e = ease.inQuad(k);
+  const bx = lerp(sx(fx.sx), tx, k);
+  const by = lerp(sy(fx.sy), ty, e) - Math.sin(Math.PI * k) * cell * 2.4;
+  // iz
+  const px = lerp(sx(fx.sx), tx, Math.max(0, k - 0.08));
+  const py = lerp(sy(fx.sy), ty, Math.max(0, k - 0.08) ** 2) - Math.sin(Math.PI * Math.max(0, k - 0.08)) * cell * 2.4;
+  const grad = g.createLinearGradient(bx, by, px, py);
+  grad.addColorStop(0, 'rgba(255, 200, 110, 0.9)');
+  grad.addColorStop(1, 'rgba(160, 30, 10, 0)');
+  g.strokeStyle = grad;
+  g.lineCap = 'round';
+  g.lineWidth = cell * 0.18;
+  g.beginPath();
+  g.moveTo(bx, by);
+  g.lineTo(px, py);
+  g.stroke();
+  g.fillStyle = '#5a1a08';
+  g.beginPath();
+  g.arc(bx, by, cell * 0.14, 0, TAU);
+  g.fill();
+  g.fillStyle = '#ffb347';
+  g.beginPath();
+  g.arc(bx - cell * 0.03, by - cell * 0.03, cell * 0.08, 0, TAU);
+  g.fill();
+  light(bx, by, cell * 0.9, '#ff7a2f', 0.85);
+}
+
+/** Boşluk Tahtı: yolda dönen mor yarık (açılırken büyür, kapanırken söner). */
+function drawEvRift(fx, cell) {
+  identity();
+  const cx = sx(fx.x);
+  const cy = sy(fx.y);
+  const r = fx.radius * cell;
+  if (fx.t < fx.warn) {
+    const k = clamp(fx.t / fx.warn, 0, 1);
+    warnRing(cx, cy, r * (1.4 - 0.4 * k), '#c08aff', k, cell);
+    light(cx, cy, r * k, '#a04aff', 0.4 * k);
+    return;
+  }
+  const life = fx.t - fx.warn;
+  const a = clamp(life / 0.35, 0, 1) * clamp((fx.dur - life) / 0.5, 0, 1);
+  const grd = g.createRadialGradient(cx, cy, 0, cx, cy, r * 1.1);
+  grd.addColorStop(0, `rgba(10,2,20,${0.95 * a})`);
+  grd.addColorStop(0.55, `rgba(40,10,70,${0.75 * a})`);
+  grd.addColorStop(1, 'rgba(120,60,200,0)');
+  g.fillStyle = grd;
+  g.beginPath();
+  g.ellipse(cx, cy, r * 1.1, r * 0.8, 0, 0, TAU);
+  g.fill();
+  g.save();
+  g.translate(cx, cy);
+  g.scale(1, 0.72);
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) {
+    g.rotate(time * (2 + i * 0.7) + i);
+    g.beginPath();
+    g.arc(0, 0, r * (0.75 + i * 0.14), 0, Math.PI * 0.9);
+    g.strokeStyle = rgba(i === 1 ? '#e6c8ff' : '#b06aff', 0.6 * a);
+    g.lineWidth = Math.max(1.2, cell * 0.035);
+    g.stroke();
+  }
+  g.restore();
+  g.globalCompositeOperation = 'source-over';
+  light(cx, cy, r * 1.5, '#a04aff', 0.55 * a);
 }
 
 /** Veba Bulutu: alanı kaplayan, kıvrılan yeşil sis halkası. */
@@ -1119,7 +1256,7 @@ function drawEnemy(e, quality) {
   const frame = flying ? frameOf(time * (e.boss ? 3 : 8) + e.id) : frameOf(e.walk * 2);
   const squash = 1 + Math.sin(e.walk * TAU) * 0.035;
   const spawn = ease.outCubic(e.spawnT);
-  const scale = 0.6 + 0.4 * spawn;
+  const scale = (0.6 + 0.4 * spawn) * (e.elite ? 1.12 : 1); // seçkin bir boy büyük
   let alpha = spawn;
   const burrowed = e.phased && def.phase?.kind === 'burrow';
   if (e.phased && !burrowed) alpha *= 0.28;
@@ -1145,7 +1282,8 @@ function drawEnemy(e, quality) {
   if (sp.aura && quality.glow) light(px, midY, sp.aura.r * cell * (1 + 0.08 * Math.sin(time * 3 + e.id)), sp.aura.color, 0.32);
   if (e.slowT > 0 && !frozen) footRing(px, py, cell, '#6fb7d6', 0.6);
   if (e.cursed) footRing(px, py, cell, '#ff4f8f', 0.35);
-  if (e.enraged) {
+  if (e.elite) eliteMark(e, px, py, midY, cell, sp, quality);
+  if (e.enraged || e.raged) {
     footRing(px, py, cell, '#ff3b2e', 0.7);
     if (quality.glow) light(px, midY, sp.height * cell * 0.8, '#ff3b2e', 0.28 + 0.12 * Math.sin(time * 9 + e.id));
   }
@@ -1187,6 +1325,24 @@ function drawEnemy(e, quality) {
 
   // can barı: boss'ta hep, diğerlerinde yara alınca görünür
   if ((e.boss || e.hp < e.maxHp * 0.999) && !e.phased) hpBar(e, px, bodyY - sp.height * cell * 1.05 - 4, cell);
+}
+
+/** Seçkin düşman: ayağında dönen altın halka, üstünde soluk altın ışık. */
+function eliteMark(e, px, py, midY, cell, sp, quality) {
+  identity();
+  g.save();
+  g.translate(px, py);
+  g.scale(1, 0.38);
+  g.rotate(time * 1.6 + e.id);
+  g.setLineDash([cell * 0.12, cell * 0.08]);
+  g.beginPath();
+  g.arc(0, 0, cell * 0.38, 0, TAU);
+  g.lineWidth = Math.max(1.5, cell * 0.05);
+  g.strokeStyle = rgba('#ffd27a', 0.85);
+  g.stroke();
+  g.setLineDash([]);
+  g.restore();
+  if (quality.glow) light(px, midY, sp.height * cell * 0.75, '#ffc24a', 0.22 + 0.08 * Math.sin(time * 4 + e.id));
 }
 
 /** Çamur Sürüngeni gömülüyken: kabaran toprak, hafif kıpırtı ve iki soluk göz. */
@@ -1295,9 +1451,9 @@ function hpBar(e, px, py, cell) {
   g.fillRect(x, py, w * ratio, h);
   g.fillStyle = 'rgba(255,255,255,0.18)';
   g.fillRect(x, py, w * ratio, 1);
-  if (boss) {
+  if (boss || e.elite) {
     g.lineWidth = 1;
-    g.strokeStyle = rgba(THEME.gold, 0.8);
+    g.strokeStyle = rgba(THEME.gold, boss ? 0.8 : 0.65);
     g.strokeRect(x - 1.5, py - 1.5, w + 3, h + 3);
   }
 }

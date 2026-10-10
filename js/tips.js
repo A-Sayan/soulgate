@@ -3,7 +3,9 @@
  *  Sorumluluk : Öğretici ipuçları. İlk savaşta temel adımlar (kule kur, kule
  *               elde, dalga, yükselt, hız, otomatik dalga), sonra yeri gelince
  *               yenileri (yetenek, patron, ustalık, kule seçimi, çarşı, yetenek
- *               takma, her bölümün tehdidi). Her ipucu bir kez gösterilir.
+ *               takma, her bölümün tehdidi; 1.5.0: her harita olayı, seçkin
+ *               düşman, öfkeli patron, Sonsuz Gece, Meydan Okumalar). Her ipucu
+ *               bir kez gösterilir.
  *  Bağımlılık : config, utils, events, i18n (0) · state, save, audio (1).
  *
  *  GÖRÜNÜM
@@ -31,7 +33,7 @@
  *   Ayar 'tips' kapalıysa hiçbir şey gösterilmez. Görülenler records.tips'te.
  * ========================================================================== */
 
-import { TIPS, MAP_BY_ID, TOWERS } from './config.js';
+import { TIPS, MAP_BY_ID, TOWERS, MAP_EVENTS } from './config.js';
 import { template, clamp } from './utils.js';
 import { EV, on, emit } from './events.js';
 import { section } from './i18n.js';
@@ -48,6 +50,7 @@ let card = null;
 let ring = null;
 const queue = [];          // { id, opt, rank }
 let shown = null;          // görünen ipucu
+let shownAt = 0;           // görünmeye başladığı an (ms; kendiliğinden kapananlar en az birkaç sn okunsun)
 let wait = 0;              // sıradakine kadar kalan süre (sn)
 let menuNow = null;        // açık menü ekranı (menu.js bildirir)
 let lastT = 0;
@@ -100,6 +103,19 @@ function subscribe() {
     if (run.wave === 0 && run.towers.length === 0) trigger('build', { target: '.bar' });
     else if (run.wave === 0) trigger('wave', { target: '[data-el="waveBtn"]' });
     if (run.skills.length > 0) trigger('skill', { target: '.skill-orb' });
+    if (run.mode === 'endless') trigger('endless');
+  });
+  on(EV.RUN_CONTINUE, () => trigger('endless'));
+  // 1.5.0: harita olayı, seçkin düşman ve öfkeli patron ilk görüldüklerinde anlatılır;
+  // dalga bitince (okumaya vakit kalsın diye) kendiliğinden kapanır
+  on(EV.MAP_EVENT, (id, phase) => {
+    if (phase === 'warn' && MAP_EVENTS[id]) trigger(`event-${id}`);
+  });
+  on(EV.SPAWN, (e) => {
+    if (e.elite) trigger('elite');
+  });
+  on(EV.BOSS_ABILITY, (b, kind) => {
+    if (kind === 'roar') trigger('wrath', { target: '.bossbar' });
   });
   on(EV.BUILD, () => {
     complete('build');
@@ -110,6 +126,9 @@ function subscribe() {
     if (state.run && state.run.wave >= 1) complete(`chapter-${state.run.mapId}`); // savaş başladı: tehdit okundu sayılır
   });
   on(EV.WAVE_CLEAR, (n) => {
+    // görünmekte olan olay/seçkin/Sonsuz Gece ipucu okunmuş sayılır (sırada bekleyenler yerinde kalır)
+    const auto = shown && (shown.id.startsWith('event-') || shown.id === 'elite' || shown.id === 'endless');
+    if (auto && performance.now() - shownAt > 4000) complete(shown.id);
     if (n >= 1) offerUpgrade();
     if (n >= 2) trigger('speed', { target: '[data-el="speedBtn"]' });
     if (n >= 3 && !state.settings.autoWave) trigger('auto', { target: '[data-el="autoBtn"]' });
@@ -123,7 +142,10 @@ function subscribe() {
     if (phase === 'cast') complete('skill');
   });
   on(EV.BOSS_SPAWN, () => trigger('boss', { target: '.bossbar' }));
-  on(EV.BOSS_DIE, () => complete('boss'));
+  on(EV.BOSS_DIE, () => {
+    complete('boss');
+    complete('wrath');
+  });
   on(EV.OPEN, (what) => {
     if (what === 'info') complete('discover');
   });
@@ -142,7 +164,11 @@ function offerUpgrade() {
  * 2. SIRA
  * ------------------------------------------------------------------------ */
 const enabled = () => !!state.settings.tips;
-const rankOf = (id) => (id.startsWith('chapter-') ? -1 : TIPS.order.indexOf(id));
+const rankOf = (id) => {
+  if (id.startsWith('chapter-')) return -1;
+  if (id.startsWith('event-')) return TIPS.order.indexOf('boss') - 0.5; // olay, patrondan hemen önce
+  return TIPS.order.indexOf(id);
+};
 
 /** İpucunu sıraya koyar (kapalıysa, görülmüşse ya da zaten sıradaysa hiçbir şey olmaz). */
 export function trigger(id, opt = {}) {
@@ -227,6 +253,7 @@ export function update() {
 
 function show(item) {
   shown = item;
+  shownAt = performance.now();
   fill(item);
   root.dataset.layer = item.opt.layer;
   card.hidden = false;
@@ -259,6 +286,10 @@ function fill(item) {
     const map = MAP_BY_ID[id.slice(8)];
     title = template(T.chapter.title, { name: map.name });
     text = map.threat;
+  } else if (id.startsWith('event-')) {
+    const ev = MAP_EVENTS[id.slice(6)];
+    title = template(T.event.title, { name: ev.name });
+    text = ev.desc;
   } else {
     const sec = T[id];
     title = sec.title;
@@ -283,10 +314,10 @@ function hide(done, quiet = false) {
 /* — Hedef ve yerleşim — */
 const GAP = 12;
 const EDGE = 8;
-// kartın örtmemesi gereken düğmeler (oyunda OTO ve dalga, ana menüde oyna/devam et)
+// kartın örtmemesi gereken düğmeler (oyunda OTO ve dalga, ana menüde oyna/devam et/Meydan Okumalar)
 const AVOID = {
   game: ['[data-el="autoBtn"]', '[data-el="waveBtn"]'],
-  menu: ['.screen.active [data-act="continue"]', '.screen.active [data-act="new"]'],
+  menu: ['.screen.active [data-act="continue"]', '.screen.active [data-act="new"]', '.screen.active [data-act="modes"]'],
 };
 
 /** Hedefin ekrandaki dikdörtgeni (yoksa null). */

@@ -39,6 +39,7 @@ export const EV = Object.freeze({
   /* — Oyun akışı — */
   RUN_START: 'run:start',         // (kayıttanMı, bölümKimliği) — game → herkes (efektleri sıfırla; ses bölüm müziğini seçer)
   RUN_END: 'run:end',             // (zaferMi, istatistik) — game → menu, audio
+  RUN_CONTINUE: 'run:continue',   // () — game → ui, audio, main, tips (kazanılan bölüm Sonsuz Gece olarak sürüyor)
   SAVEPOINT: 'run:savepoint',     // () — game → main (sahne temiz, kaydet)
   PAUSE: 'run:pause',             // (duraklatıldıMı) — ui/menu/main → audio, ui
   SPEED: 'run:speed',             // (hız) — ui → audio
@@ -82,11 +83,18 @@ export const EV = Object.freeze({
                                   //        'web' (değer: kule) | 'deathblast' (yarıçap) | 'harden' | 'hex' (değer: kule sayısı) |
                                   //        'blizzard' (değer: süre) | 'rebirth' (yarıçap)
 
+  /* — Harita olayları (her bölümün kendine özgü olayı, config MAP_EVENTS) — */
+  MAP_EVENT: 'map:event',         // (olay, evre, x, y, değer) — game → particles, audio, ui, tips
+                                  //   olay: 'rise' | 'blizzard' | 'gas' | 'lava' | 'rift'
+                                  //   evre: 'warn' (uyarı; değer: uyarı süresi) | 'act' (patlak verdi; değer: yarıçap/süre) |
+                                  //         'hit' (yarık bir düşmanı savurdu) | 'end'
+
   /* — Boss — */
   BOSS_SPAWN: 'boss:spawn',       // (boss) — game → ui, audio, particles
   BOSS_PHASE: 'boss:phase',       // (boss, evreNo) — game → ui, audio, particles
-  BOSS_ABILITY: 'boss:ability',   // (boss, tür: 'summon'|'scorch'|'stomp'|'voidburst', x, y, yarıçap) — game → particles, audio
-                                  //   scorch: alev (Kül Ejderi, Anka), stomp: buz (Buzul Devi), voidburst: boşluk
+  BOSS_ABILITY: 'boss:ability',   // (boss, tür: 'summon'|'scorch'|'stomp'|'voidburst'|'roar', x, y, yarıçap) — game → particles, audio
+                                  //   scorch: alev (Kül Ejderi, Anka), stomp: buz (Buzul Devi), voidburst: boşluk,
+                                  //   roar: patron öfkesi kükremesi (Kâbus / "Öfkeli Patronlar" kuralı)
   BOSS_DIE: 'boss:die',           // (boss) — game → ui, audio, particles
 
   /* — Yetenekler (yan kuleler) — */

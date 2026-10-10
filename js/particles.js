@@ -817,6 +817,15 @@ function onBoss(boss, kind, x, y, radius) {
     burst(PRE.spark, x, y, 16, { color: '#e08aff', radius: radius * 0.4, speed: 1.4 });
     glow(x, y, radius * 1.2, '#a04aff', 0.35, 0.7);
     addTrauma(T.scorch);
+  } else if (kind === 'roar') {
+    // öfkeli patronun kükremesi: kırmızı şok halkaları, toz, sarsıntı
+    ring(x, y, 0.3, radius, 0.55, '#ff3b2e', 0.12);
+    ring(x, y, 0.2, radius * 0.75, 0.75, '#ffb08a', 0.05, 'add', 0.1, 0.6);
+    burst(PRE.dust, x, y, 12, { radius: radius * 0.5, size: 1.5, color: '#3a2420' });
+    burst(PRE.ember, x, y - 0.5, 10, { color: '#ff5a3a', radius: 0.5, rise: -1.2 });
+    glow(x, y, radius * 0.9, '#ff3b2e', 0.3, 0.6);
+    addTrauma(T.scorch * 0.8);
+    haptic('boss');
   } else if (kind === 'scorch') {
     burst(PRE.flame, x, y, 30, { radius, speed: 1.5, size: 1.5 });
     burst(PRE.smoke, x, y, 10, { radius: radius * 0.8, size: 1.6 });
@@ -1037,6 +1046,90 @@ function onAbility(e, kind, x, y, value) {
   }
 }
 
+/* — Harita olayları (1.5.0) — */
+function onMapEvent(id, phase, x, y, value) {
+  const T = FEEL.shake.trauma;
+  switch (`${id}:${phase}`) {
+    case 'rise:warn':
+      burst(PRE.dust, x, y + 0.2, 8, { radius: 0.4, size: 1.2, color: '#3a3128' });
+      wisps(x, y - 0.2, 4, '#9dff8a');
+      ring(x, y, 0.1, 0.8, 0.8, '#7aff8a', 0.05, 'add', 0, 0.5);
+      addTrauma(0.06);
+      break;
+    case 'rise:act':
+      burst(PRE.dust, x, y, 14, { radius: 0.6, size: 1.5 });
+      burst(PRE.debris, x, y, 10, { color: '#4a3e30', speed: 1.4 });
+      wisps(x, y - 0.2, 6, '#9dff8a');
+      ring(x, y, 0.2, 1.2, 0.5, '#9dff8a', 0.06);
+      addTrauma(0.12);
+      haptic('build');
+      break;
+    case 'blizzard:warn': {
+      const map = state.map;
+      if (map) for (let i = 0; i < 16; i++) ambient('snow', rng.range(0, map.cols), rng.range(-1, map.rows * 0.4));
+      break;
+    }
+    case 'blizzard:act': {
+      flashScreen('#d8f0ff', 0.25, 0.9);
+      const map = state.map;
+      if (map) for (let i = 0; i < 50; i++) ambient('snow', rng.range(0, map.cols), rng.range(-1, map.rows * 0.7));
+      addTrauma(0.12);
+      break;
+    }
+    case 'gas:warn':
+      burst(PRE.bubble, x, y, 8, { color: '#c6ff4a', radius: 0.6 });
+      break;
+    case 'gas:act':
+      burst(PRE.smoke, x, y, 12, { color: '#4a5a1a', radius: value * 0.6, size: 1.8 });
+      burst(PRE.mist, x, y, 14, { color: '#b6e04a', radius: value * 0.7, size: 1.8 });
+      burst(PRE.bubble, x, y, 10, { color: '#c6ff4a', radius: value * 0.7 });
+      ring(x, y, 0.2, value * 1.1, 0.6, '#a8c84a', 0.1);
+      stain(x, y, '#1a2a0a', value * 1.4);
+      addTrauma(0.14);
+      break;
+    case 'gas:end':
+      burst(PRE.mist, x, y, 6, { color: '#8aa83a', radius: value * 0.6, size: 1.4 });
+      break;
+    case 'lava:act':
+      glow(x, y, value * 1.6, '#ffb347', 0.25, 1);
+      burst(PRE.flame, x, y, 26, { radius: value * 0.6, speed: 1.6, size: 1.4 });
+      burst(PRE.ember, x, y, 18, { color: '#ff7a2f', radius: value * 0.5, rise: -1.4 });
+      burst(PRE.debris, x, y, 10, { color: '#2a1410', speed: 1.8 });
+      burst(PRE.smoke, x, y, 8, { radius: value * 0.5, size: 1.6 });
+      ring(x, y, 0.3, value * 1.3, 0.5, '#ff9a3a', 0.1);
+      stain(x, y, '#1a0804', value * 1.5);
+      flashScreen('#ff7a2f', 0.12, 0.35);
+      addTrauma(T.quake * 0.8);
+      haptic('boss');
+      break;
+    case 'rift:warn':
+      wisps(x, y, 6, '#c08aff');
+      ring(x, y, 1.1, 0.1, 0.9, '#a04aff', 0.05);
+      break;
+    case 'rift:act':
+      ring(x, y, 0.1, 1.2, 0.6, '#d08aff', 0.1);
+      glow(x, y, 1.6, '#a04aff', 0.4, 0.8);
+      burst(PRE.spark, x, y, 14, { color: '#e08aff', radius: 0.4, speed: 1.3 });
+      addTrauma(0.15);
+      break;
+    case 'rift:hit': {
+      wisps(x, y - 0.2, 3, '#c08aff');
+      const e = value;
+      if (e && e.alive) {
+        ring(e.x, e.y, 0.05, 0.7, 0.4, '#bff4ff', 0.05);
+        burst(PRE.spark, e.x, e.y - 0.3, 6, { color: '#e08aff', speed: 0.9 });
+      }
+      break;
+    }
+    case 'rift:end':
+      ring(x, y, 1, 0.05, 0.4, '#a04aff', 0.06);
+      burst(PRE.spark, x, y, 8, { color: '#c08aff', speed: 0.8 });
+      break;
+    default:
+      break;
+  }
+}
+
 /** Kuyu ruh üretti, faiz verdi ya da kaleye can verdi. */
 function onGenerate(tw, amount, kind) {
   if (kind === 'mend') {
@@ -1107,7 +1200,12 @@ export function init() {
 
   on(EV.SPAWN, (en) => {
     if (ENEMIES[en.type]?.minion) burst(PRE.dust, en.x, en.y, 3, { size: 0.7 }); // mezardan/yumurtadan çıkış
+    else if (en.elite) {
+      ring(en.x, en.y, 0.1, 0.7, 0.5, '#ffd27a', 0.05);
+      burst(PRE.ember, en.x, en.y - 0.3, 6, { color: '#ffd27a', radius: 0.3, rise: -1 });
+    }
   });
+  on(EV.MAP_EVENT, onMapEvent);
   on(EV.PHASE, (en, entered) => {
     ring(en.x, en.y, 0.1, 0.55, 0.3, '#a9c2ff', 0.04, 'add', 0, entered ? 0.7 : 0.45);
     burst(PRE.mist, en.x, en.y, 3, { color: '#a9c2ff', size: 0.7 });
@@ -1161,6 +1259,10 @@ export function init() {
         break;
       case 'void':
         wisps(tw.x, tw.y - 0.3, 3, '#c08aff');
+        break;
+      case 'roar':
+        burst(PRE.dust, tw.x, tw.y - 0.1, 4, { size: 1.1, color: '#3a2420' });
+        burst(PRE.spark, tw.x, tw.y - 0.4, 4, { color: '#ff6a4a', speed: 0.6 });
         break;
       default:
         burst(PRE.smoke, tw.x, tw.y - 0.2, 5, { color: '#2b2b2b', rise: -0.6 });

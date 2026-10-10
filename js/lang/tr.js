@@ -74,7 +74,7 @@ export default {
   difficulties: {
     easy: { name: 'Çırak', desc: 'Daha dayanıklı surlar, daha zayıf düşmanlar.' },
     normal: { name: 'Muhafız', desc: 'Oyunun tasarlandığı denge.' },
-    hard: { name: 'Kâbus', desc: 'Az can, kıt ruh, acımasız gece. Altın ödülü en yüksek.' },
+    hard: { name: 'Kâbus', desc: 'Az can, seçkin düşmanlar, öfkeli patronlar; harita olayları sık ve sert patlar. Altın ödülü en yüksek.' },
   },
 
   waveTags: {
@@ -688,6 +688,8 @@ export default {
     autoOff: 'Otomatik dalga kapalı',
     chapter: 'BÖLÜM {n}',
     blizzard: 'Tipi! Kuleler yavaş ateş ediyor',
+    noSell: 'Satılamaz (sınav kuralı)',
+    noMastery: 'Ustalık yok (sınav kuralı)',
     fullLives: 'Kale zaten tam canlı',
     buffed: 'Çan: hız +{rate}, güç +{dmg}',
     buffedRate: 'Çan: hız +{rate}',
@@ -934,6 +936,131 @@ export default {
     },
     chapter: {
       title: '{name}: asıl tehdit',
+    },
+    event: {
+      title: 'Harita olayı: {name}',
+    },
+    wrath: {
+      title: 'Öfkeli patron',
+      text: 'Bu patron öfkeli: arada bir kükreyip yakındaki kuleleri kısa süre susturur, canı yarıya inince hızlanır. Kulelerini tek bir köşeye yığma.',
+    },
+    elite: {
+      title: 'Seçkin düşman',
+      text: 'Ayağında altın halka olan düşmanlar seçkindir: daha dayanıklı ve biraz daha hızlıdır ama iki kat ruh bırakır.',
+    },
+    endless: {
+      title: 'Sonsuz Gece',
+      text: 'Dalgalar artık bitmiyor: her 10 dalgada bir patron gelir, düşmanlar kalabalıklaşır, seçkinler çoğalır. Rekorun ulaştığın dalga.',
+    },
+    modes: {
+      title: 'Meydan Okumalar açıldı',
+      text: 'Sonsuz Gece, Günün Sınavı ve Sınavlar seni bekliyor. Yeni kurallar, rekorlar ve altın ödülleri burada.',
+    },
+  },
+
+  // Meydan Okumalar (1.5.0): modlar, kurallar, sınavlar, harita olayları
+  modes: {
+    title: 'Meydan Okumalar',
+    campaign: { name: 'Bölüm' },
+    endless: {
+      name: 'Sonsuz Gece',
+      sub: 'Dalgalar artık bitmiyor',
+      desc: 'Bu bölümün 30 dalgasından sonra gece bitmez: her 10 dalgada bir patron gelir, düşmanlar kalabalıklaşır ve seçkinler çoğalır. Rekorun ulaştığın dalgadır.',
+      card: 'Kazandığın bir bölümde dalgalar bitmez. Ne kadar dayanabilirsin?',
+    },
+    daily: {
+      name: 'Günün Sınavı',
+      card: 'Her gün yeni bir bölüm ve iki kural. Günün ilk zaferi büyük altın ödülü verir.',
+    },
+    challenge: { name: 'Sınav' },
+    challengeKicker: 'Sınav: {name}',
+    continued: 'Bölüm kazanıldı',
+    continueEndless: 'Sonsuza devam et',
+    endlessLocked: 'Bölümü kazanınca açılır',
+    endlessRecord: 'En iyi: dalga {n}, {name} ({diff})',
+    endlessNone: 'Henüz rekor yok',
+    event: 'Harita olayı',
+    months: ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'],
+    dayFormat: '{d} {m}',
+    rules: 'Kurallar',
+    dailyDone: 'Bugün kazanıldı',
+    challengeDone: 'Tamamlandı',
+    firstWin: 'ilk zaferde',
+    streak: 'Seri: {n} gün',
+    lockedFirst: 'İlk bölümü kazanınca açılır',
+    lockedAll: 'Meydan Okumalar, ilk bölümü (Kül Vadisi) herhangi bir zorlukta kazanınca açılır.',
+    pickChapter: 'Bölüm seç',
+    start: 'Başla',
+    replay: 'Yeniden oyna',
+    challenges: 'Sınavlar',
+    challengesHint: 'Kazandığın her bölüm iki sınav açar. Kurallar ve zorluk sabittir; ilk tamamlayışta altın ödülü ve mühür.',
+    challengeLocked: '{name} kazanılınca açılır',
+    endlessOver: 'Gece Sona Erdi',
+    endlessSub: 'Gece seni {n}. dalgada yendi. En iyi: {best}.',
+    dailyWin: 'Günün sınavını kazandın! Seri: {n} gün.',
+    dailyAgain: 'Bugünün ödülü zaten alınmıştı. Yarın yeni bir sınav var.',
+    challengeWin: 'Sınav tamamlandı, mühür senin!',
+    challengeAgain: 'Bu sınavı daha önce tamamlamıştın.',
+    noRuin: 'Meydan Okumalarda kale yıkılmaz; dilediğin kadar dene.',
+    bonusDaily: 'Günün Sınavı ödülü',
+    bonusChallenge: 'Sınav ödülü',
+  },
+
+  // Kurallar (config MODIFIERS)
+  mods: {
+    glass: { name: 'Cam Kale', desc: 'Kale tek canla başlar. Surlar ve Kutsal Onarım işe yaramaz; tek bir sızıntı yeter.' },
+    wrath: { name: 'Öfkeli Patronlar', desc: 'Patronlar daha dayanıklı; arada bir kükreyip yakındaki kuleleri susturur, canı yarıya inince hızlanır.' },
+    scarce: { name: 'Kıt Ruh', desc: 'Öldürmeler, dalga bonusları ve erken çağrı %20 az ruh verir.' },
+    swift: { name: 'Hızlı Ölüler', desc: 'Bütün düşmanlar %20 hızlı yürür.' },
+    armored: { name: 'Demir Ordu', desc: 'Bütün düşmanların zırhı ve büyü direnci artar.' },
+    horde: { name: 'Kalabalık', desc: 'Sıradan düşman grupları %35 kalabalık gelir.' },
+    noskills: { name: 'Sessiz Burçlar', desc: 'Yan kulelerin yetenekleri bu savaşta kullanılamaz.' },
+    nosell: { name: 'Satış Yok', desc: 'Savaşa girmiş kule satılamaz; yalnızca o hazırlıkta kurduğunu geri alabilirsin.' },
+    nomastery: { name: 'Ustasız', desc: 'Ustalık seçilemez; kuleler 3. seviyede kalır.' },
+    fog: { name: 'Sis', desc: 'Bütün kulelerin menzili %15 kısa.' },
+    storm: { name: 'Olay Fırtınası', desc: 'Haritanın olayı iki kattan sık patlak verir.' },
+  },
+
+  // Sınavlar (config CHALLENGES)
+  challenges: {
+    'glass-ash': 'Cam Kale',
+    'iron-ash': 'Demir Yürüyüş',
+    'wrath-frost': 'Buzul Öfkesi',
+    'silent-frost': 'Sessiz Geçit',
+    'horde-mire': 'Çürük Sürü',
+    'fog-mire': 'Sisli Bataklık',
+    'storm-forge': 'Lav Fırtınası',
+    'scarce-forge': 'Kıtlık Ocağı',
+    'night-void': 'Gecenin Sonu',
+    'glass-void': 'Cam Taht',
+  },
+
+  // Harita olayları (config MAP_EVENTS; her bölümün kendi olayı)
+  events: {
+    rise: {
+      name: 'Ölüler Uyanıyor',
+      desc: 'Savaş sürerken eski mezar arada bir kıpırdar ve yola iskeletler çıkar. Fazladan düşmandırlar ama ruh da bırakırlar.',
+      warnText: 'Mezar kıpırdıyor: ölüler kalkıyor!',
+    },
+    blizzard: {
+      name: 'Tipi',
+      desc: 'Arada bir tipi çıkar: birkaç saniye kuleler yavaş ateş eder, düşmanlar da yavaş yürür (ayaz kurtları hariç).',
+      warnText: 'Tipi geliyor!',
+    },
+    gas: {
+      name: 'Bataklık Gazı',
+      desc: 'Yolda bir gaz kabarcığı patlar: içindeki kuleler kısa süre susar, düşmanlar zehirlenir ve yenilenemez.',
+      warnText: 'Gaz kabarıyor: işaretli yere dikkat!',
+    },
+    lava: {
+      name: 'Lav Sıçraması',
+      desc: 'Lav gölleri arada bir köz fırlatır: düştüğü yerdeki düşmanlar yanar, kuleler kısa süre susar.',
+      warnText: 'Lav sıçrıyor: işaretli yerlere dikkat!',
+    },
+    rift: {
+      name: 'Boşluk Yarığı',
+      desc: 'Yolda bir yarık açılır: içinden geçen düşmanlar geri savrulur ama boşluk kalkanı kazanır.',
+      warnText: 'Yolda bir boşluk yarığı açılıyor!',
     },
   },
 };

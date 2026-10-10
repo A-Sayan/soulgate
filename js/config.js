@@ -27,7 +27,7 @@ import { CHAPTER_DEFS } from './content/chapters.js';
 export const GAME = {
   title: 'Soulgate',
   fullTitle: 'Soulgate: Tower Defense',
-  version: '1.4.0',
+  version: '1.5.0',
   year: 2026,                 // ilk yayın yılı
   studio: 'Sayk Studio',      // yayıncı; telif satırında görünür
   owner: 'A. Sayan',          // telif sahibi
@@ -70,10 +70,14 @@ export const WAVE_COUNT = 30;
 /**
  * ÖĞRETİCİ İPUÇLARI (tips.js). Kimlikler görülme listesine yazılır (records.tips);
  * metinler lang tips.<kimlik>. Sıra: aynı anda sıraya girenlerde öncelik (küçük önce).
- * 'chapter-<bölüm>' ipuçları (2.–5. bölüm) bölümün tehdidini ilk girişte anlatır.
+ * 'chapter-<bölüm>' ipuçları (2.–5. bölüm) bölümün tehdidini ilk girişte anlatır;
+ * 'event-<olay>' ipuçları her harita olayını ilk patlak verişinde (MAP_EVENTS).
  */
 export const TIPS = {
-  order: ['build', 'chain', 'wave', 'upgrade', 'speed', 'auto', 'discover', 'skill', 'boss', 'mastery', 'loadout', 'market', 'equip'],
+  order: [
+    'build', 'chain', 'wave', 'upgrade', 'speed', 'auto', 'discover', 'skill', 'boss',
+    'wrath', 'elite', 'endless', 'mastery', 'loadout', 'market', 'equip', 'modes',
+  ],
   delay: 0.6,   // bir ipucu kapandıktan sonra sıradakine kadar (sn)
 };
 
@@ -112,18 +116,28 @@ export const ECONOMY = {
   earlyCallPerSecond: 3,    // erken çağrıda kalan her saniye için ruh
 };
 
+/*
+ * Zorluklar. events: harita olaylarının sıklığı (rate, çarpan) ve sertliği (power:
+ * susturma süresi, kalkan payı, kalkan ölü sayısı…; bkz. MAP_EVENTS). elites: dalga
+ * ELITE.fromWave'den sonra sıradan düşmanların seçkin doğma olasılığı. wrath: patronlar
+ * öfke yeteneği kazanır (BOSS_WRATH). Kâbus (1.5.0): olaylar sık ve sert, seçkinler,
+ * öfkeli patronlar; ham can çarpanı biraz düştü, zorluk mekaniklerden gelir.
+ */
 export const DIFFICULTIES = {
   easy: {
     id: 'easy',
     hp: 0.78, souls: 1.08, lives: 30, startSouls: 250, reward: 0.7,
+    events: { rate: 0.75, power: 0.85 }, elites: 0, wrath: false,
   },
   normal: {
     id: 'normal',
     hp: 1.0, souls: 1.0, lives: 20, startSouls: 200, reward: 1.0,
+    events: { rate: 1, power: 1 }, elites: 0, wrath: false,
   },
   hard: {
     id: 'hard',
-    hp: 1.18, souls: 1.0, lives: 12, startSouls: 180, reward: 1.6,
+    hp: 1.08, souls: 1.0, lives: 12, startSouls: 180, reward: 1.9,
+    events: { rate: 1.6, power: 1.35 }, elites: 0.1, wrath: true,
   },
 };
 export const DIFFICULTY_ORDER = ['easy', 'normal', 'hard'];
@@ -144,11 +158,12 @@ export const SCALING = {
   hp: (w) => 1 + 0.11 * (w - 1) + 0.0042 * (w - 1) ** 2,
   // sıradan düşmanlar: dalga 1 ×1.05, 10 ×1.08, 20 ×1.11, 30 ×1.14 (× bölümün horde'u)
   hordeHp: (w) => 1.05 + 0.003 * (w - 1),
-  // patronlar ve yankıları: dalga 10 ×0.96, 20 ×0.92, 30 ×0.88 (azalan geç oyun ruhunu dengeler)
-  bossHp: (w) => 1 - 0.004 * (w - 1),
+  // patronlar ve yankıları: dalga 10 ×0.96, 20 ×0.92, 30 ×0.88 (azalan geç oyun ruhunu dengeler);
+  // Sonsuz Gece'de ×0.75'in altına inmez
+  bossHp: (w) => Math.max(0.75, 1 - 0.004 * (w - 1)),
   // dalga 10'a kadar dalga başına +%4.5, sonra +%3.5 (dalga 30: ×2.11; eskiden ×2.31)
   souls: (w) => 1 + 0.045 * (Math.min(w, 10) - 1) + 0.035 * Math.max(0, w - 10),
-  speed: (w) => 1 + 0.004 * (w - 1),
+  speed: (w) => Math.min(1.35, 1 + 0.004 * (w - 1)), // Sonsuz Gece'de en çok ×1.35
 };
 
 /* --------------------------------------------------------------------------
@@ -164,6 +179,136 @@ export const WAVE_RULES = {
   echoLives: 10,   // önceki bölümden dönen patron (yankı) kaleye ulaşırsa götürdüğü can
   echoSouls: 320,  // yankı patronun bıraktığı ruh (asıl hali bölüm sonunda düştüğü için ödülsüzdür)
 };
+
+/* --------------------------------------------------------------------------
+ * 6b. MODLAR, KURALLAR, HARİTA OLAYLARI (1.5.0)
+ *  Oyun modu (run.mode):
+ *   campaign  → bölümün 30 dalgası (yıldız ve bölüm açılması yalnızca buradan)
+ *   endless   → Sonsuz Gece: 30. dalgadan sonra dalgalar biter (ENDLESS); zafer yok,
+ *               rekor = ulaşılan dalga. Kazanılan bölümde açılır; bir bölüm zaferinin
+ *               ardından aynı savaş "Sonsuza devam et" ile de sürdürülebilir.
+ *   daily     → Günün Sınavı: her gün (yerel tarih) kazanılmış bölümlerden biri ve
+ *               DAILY_POOL'dan iki kural; günde ilk zafer DAILY.bonus kazandırır.
+ *   challenge → Sınavlar (CHALLENGES): sabit bölüm, zorluk ve kurallar; ilk
+ *               tamamlamada ödül. Bölümü kazanınca açılır.
+ *  Mod oyunlarında yenilgi kaleyi yıkmaz; bölüm rekorları ve yıldızlar değişmez.
+ * ------------------------------------------------------------------------ */
+export const MODES = ['campaign', 'endless', 'daily', 'challenge'];
+
+/**
+ * Kurallar (sınavlar ve günün sınavı açar). Metin: lang mods.<kimlik>.
+ *  glass     kale tek canla başlar (Surlar ve onarım sayılmaz)
+ *  wrath     patronlar öfkelidir (BOSS_WRATH; Kâbus'ta zaten öyle)
+ *  scarce    öldürme, dalga ve erken çağrı ruhu × souls
+ *  swift     düşmanlar × speed hızlı
+ *  armored   bütün düşmanların zırhı ve direnci + armor (en çok 0.85)
+ *  horde     sıradan düşman grupları × count kalabalık
+ *  noskills  yan kulelerin yetenekleri kullanılamaz
+ *  nosell    kule satılamaz
+ *  nomastery ustalık seçilemez (kuleler 3. seviyede kalır)
+ *  fog       kule menzilleri + range (eksi = kısa)
+ *  storm     harita olayları × events sık
+ * weight: kuralın ağırlığı (Günün Sınavı'nda iki kuralın toplamı DAILY.maxWeight'i geçmez:
+ * iki ağır kural bir arada çıkmaz, sınav yapılabilir kalır).
+ */
+export const MODIFIERS = {
+  glass: { id: 'glass', weight: 3, lives: 1 },
+  wrath: { id: 'wrath', weight: 2 },
+  scarce: { id: 'scarce', weight: 2, souls: 0.8 },
+  swift: { id: 'swift', weight: 2, speed: 1.2 },
+  armored: { id: 'armored', weight: 1, armor: 0.15 },
+  horde: { id: 'horde', weight: 2, count: 1.35 },
+  noskills: { id: 'noskills', weight: 2 },
+  nosell: { id: 'nosell', weight: 1 },
+  nomastery: { id: 'nomastery', weight: 1 },
+  fog: { id: 'fog', weight: 1, range: -0.15 },
+  storm: { id: 'storm', weight: 1, events: 2.2 },
+};
+export const MODIFIER_ORDER = ['glass', 'wrath', 'scarce', 'swift', 'armored', 'horde', 'noskills', 'nosell', 'nomastery', 'fog', 'storm'];
+
+/**
+ * Sınavlar: her bölüme iki tane. map: bölüm (kazanılınca açılır), reward: ilk
+ * tamamlamada altın (oyunun kendi ödülüne ek). Metin: lang challenges.<kimlik>.
+ */
+export const CHALLENGES = [
+  { id: 'glass-ash', map: 'kul-vadisi', difficulty: 'normal', mods: ['glass'], reward: 260 },
+  { id: 'iron-ash', map: 'kul-vadisi', difficulty: 'normal', mods: ['armored', 'nosell'], reward: 240 },
+  { id: 'wrath-frost', map: 'ayaz-gecidi', difficulty: 'normal', mods: ['wrath', 'swift'], reward: 320 },
+  { id: 'silent-frost', map: 'ayaz-gecidi', difficulty: 'normal', mods: ['noskills'], reward: 320 },
+  { id: 'horde-mire', map: 'kara-bataklik', difficulty: 'normal', mods: ['horde', 'nomastery'], reward: 400 },
+  { id: 'fog-mire', map: 'kara-bataklik', difficulty: 'normal', mods: ['fog', 'storm'], reward: 400 },
+  { id: 'storm-forge', map: 'kor-ocaklari', difficulty: 'normal', mods: ['storm', 'wrath'], reward: 480 },
+  { id: 'scarce-forge', map: 'kor-ocaklari', difficulty: 'normal', mods: ['scarce', 'horde'], reward: 480 },
+  { id: 'night-void', map: 'bosluk-tahti', difficulty: 'hard', mods: ['wrath', 'storm'], reward: 650 },
+  { id: 'glass-void', map: 'bosluk-tahti', difficulty: 'normal', mods: ['glass'], reward: 650 },
+];
+export const CHALLENGE_BY_ID = Object.fromEntries(CHALLENGES.map((c) => [c.id, c]));
+
+/** Günün Sınavı: zorluk sabit, kurallar DAILY_POOL'dan; ilk zaferin ek altını = bonus × bölüm ödül çarpanı. */
+export const DAILY = { difficulty: 'normal', mods: 2, maxWeight: 3, bonus: 220 };
+export const DAILY_POOL = ['wrath', 'scarce', 'swift', 'armored', 'horde', 'noskills', 'nosell', 'nomastery', 'fog', 'storm'];
+
+/**
+ * Sonsuz Gece. 30. dalgadan sonra dalgalar bölümün 11–29. dalgalarından (20. hariç)
+ * sırayla türetilir, her 10. dalga bölümün patronlarından biridir (10, 20, 30. dalga
+ * patronları sırayla). Can ve hız dalga numarasıyla büyümeye devam eder (SCALING),
+ * can ayrıca dalga başına hpGrowth (bileşik) artar; düşman sayısı dalga başına
+ * countGrowth artar (en çok countMax katı) ve
+ * seçkin payı elitePerWave artar (en çok eliteMax). Altın: 30'dan sonraki her dalga
+ * META.reward.perWave × rewardMult.
+ */
+export const ENDLESS = {
+  hpGrowth: 0.05,   // 30'dan sonra düşman canı dalga başına ayrıca ×1.05 (bileşik): gece giderek ağırlaşır
+  countGrowth: 0.025, countMax: 2,
+  elitePerWave: 0.01, eliteMax: 0.3,
+  rewardMult: 1.5,
+  maxWave: 9999, // kayıt doğrulaması için üst sınır
+};
+
+/** Seçkin düşman: can ve ruh katı, hız; dalga fromWave'den önce çıkmaz. Patron ve yavru seçkin olmaz. */
+export const ELITE = { hp: 1.6, souls: 2, speed: 1.08, fromWave: 4 };
+
+/**
+ * Patron öfkesi (Kâbus ya da "Öfkeli Patronlar" kuralı): can × hp; her roar.every
+ * sn'de kükrer (radius içindeki kuleler duration sn susar); canı rage.below'un
+ * altına inince rage.speed kat hızlanır.
+ */
+export const BOSS_WRATH = {
+  hp: 1.12,
+  roar: { every: 11, radius: 2.2, duration: 1.6, first: 6 },
+  rage: { below: 0.5, speed: 1.3 },
+};
+
+/**
+ * HARİTA OLAYLARI — her bölümün kendine özgü olayı (content/chapters.js → event).
+ * Yalnızca savaş sürerken (sahada düşman varken) ve EVENT_RULES.fromWave'den sonra
+ * patlak verir; her olaydan önce haritada uyarı (warn sn) görünür. every: iki olay
+ * arası [en az, en çok] sn (zorluğun events.rate'i ve "storm" kuralı kısaltır).
+ * Zorluğun events.power'ı olayın oyuncuya zor gelen yanını büyütür.
+ *  rise     Kül Vadisi — Ölüler Uyanıyor: bir mezardan count (+1 / perWaves dalga) iskelet kalkar.
+ *           Yeni kalkmış, çürük iskeletlerdir: can × hp, zırh armor; ama mezar eşyası taşır, ruhları
+ *           × souls (fazladan düşman, fazladan ruh). İlk bölüm olduğu için 5. dalgadan önce olmaz.
+ *           power → iskelet sayısı.
+ *  blizzard Ayaz Geçidi — Tipi: duration sn kuleler towerRate hızında ateş eder, düşmanlar
+ *           enemySlow kadar yavaşlar (yavaşlamayanlar hariç). power → süre ve kule yavaşlığı.
+ *  gas      Kara Bataklık — Bataklık Gazı: radius alanda kuleler silence sn susar; duration sn
+ *           boyunca içindeki düşmanlar dps × dalga can ölçeği saf hasar alır, zehirlenir
+ *           (yenilenmeleri durur). power → susturma.
+ *  lava     Kor Ocakları — Lav Sıçraması: lav gölünden globs top fırlar; düştüğü yerde
+ *           düşmanlar damage × can ölçeği büyü hasarı alıp tutuşur (uçanlar hariç), kuleler
+ *           silence sn susar. power → susturma, Kâbus'ta bir top fazla.
+ *  rift     Boşluk Tahtı — Boşluk Yarığı: yolda duration sn açık kalan yarık; içinden geçen
+ *           her düşman (patron hariç) push hücre geri savrulur ama canının ward payı kadar
+ *           boşluk kalkanı kazanır. power → kalkan.
+ */
+export const MAP_EVENTS = {
+  rise: { id: 'rise', every: [40, 58], warn: 1.8, count: 2, perWaves: 15, type: 'skeleton', fromWave: 5, hp: 0.6, armor: 0, souls: 3 },
+  blizzard: { id: 'blizzard', every: [40, 56], warn: 1.8, duration: 6, towerRate: 0.8, enemySlow: 0.3 },
+  gas: { id: 'gas', every: [34, 50], warn: 1.6, radius: 1.35, duration: 6, dps: 8, silence: 2.5 },
+  lava: { id: 'lava', every: [32, 48], warn: 1.5, globs: 2, radius: 1.0, damage: 26, burn: 0.07, burnDur: 3, silence: 2.2 },
+  rift: { id: 'rift', every: [36, 52], warn: 1.6, radius: 0.75, duration: 7, push: 2.4, ward: 0.15 },
+};
+export const EVENT_RULES = { fromWave: 3, firstDelay: 0.6, maxRate: 3 }; // fromWave: olay kendi fromWave'ini verebilir
 
 export const WAVE_TAGS = {
   normal: { color: '#e9e1d3' },
@@ -608,6 +753,9 @@ for (const [k, L] of Object.entries(STAT_LABELS)) liveField(L, 'label', `stats.$
 for (const [id, e] of Object.entries(ENEMIES)) live(e, `enemies.${id}`, ['name', 'desc', 'title'], ['title']);
 for (const [id, sk] of Object.entries(SKILLS)) live(sk, `skills.${id}`, ['name', 'desc']);
 for (const [id, up] of Object.entries(CASTLE.upgrades)) live(up, `castle.${id}`, ['name', 'desc']);
+for (const [id, m] of Object.entries(MODIFIERS)) live(m, `mods.${id}`, ['name', 'desc']);
+for (const c of CHALLENGES) liveField(c, 'name', `challenges.${c.id}`);
+for (const [id, ev] of Object.entries(MAP_EVENTS)) live(ev, `events.${id}`, ['name', 'desc', 'warnText']);
 for (const gr of SETTINGS_GROUPS) {
   liveField(gr, 'label', `settings.groups.${gr.id}`);
   if (gr.note) liveField(gr, 'noteText', `settings.notes.${gr.id}`);
@@ -640,4 +788,6 @@ function deepFreeze(obj) {
   TOWER_ORDER, TARGET_MODES, STAT_LABELS, ENEMIES, FEEL, QUALITY, MAP_BY_ID, MAP_ORDER,
   THEME, FONTS, AUDIO, DEFAULT_SETTINGS, SETTINGS_SCHEMA, SETTINGS_GROUPS, AUTO_WAVE, SAVE, STRINGS,
   META, CASTLE, CASTLE_UPGRADE_ORDER, SIDES, SKILLS, SKILL_ORDER,
+  MODES, MODIFIERS, MODIFIER_ORDER, CHALLENGES, CHALLENGE_BY_ID, DAILY, DAILY_POOL, ENDLESS, ELITE, BOSS_WRATH,
+  MAP_EVENTS, EVENT_RULES,
 ].forEach(deepFreeze);

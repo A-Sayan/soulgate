@@ -3,7 +3,9 @@
  *  Sorumluluk : Kalıcı ilerlemenin kuralları — bölüm kilitleri ve
  *               yıldızlar, çarşı fiyatları, kilitleri ve alımlar, oyuna
  *               götürülen kuleler, ana kule (kale) istatistikleri, yıkılma
- *               ve onarım, yan kulelere yetenek takma, oyun sonu altın ödülü.
+ *               ve onarım, yan kulelere yetenek takma, oyun sonu altın ödülü,
+ *               Meydan Okumalar (Sonsuz Gece, Günün Sınavı, Sınavlar): kilitleri,
+ *               günün sınavının seçimi ve mod ödülleri.
  *  Bağımlılık : config, utils, events (0) · state (1).
  *  Veri       : state.profile (şekli ve doğrulaması state.js'te).
  *  Yayınlar   : EV.PROFILE (her değişiklikte; main.js kaydeder),
@@ -15,10 +17,12 @@
 
 import {
   META, CASTLE, SKILLS, SIDES, TOWERS, TOWER_ORDER, DIFFICULTIES, DIFFICULTY_ORDER, DEFAULT_DIFFICULTY,
-  MAPS, MAP_BY_ID, MAP_ORDER, WAVE_COUNT, LOADOUT_SIZE,
+  MAPS, MAP_BY_ID, MAP_ORDER, WAVE_COUNT, LOADOUT_SIZE, CHALLENGES, CHALLENGE_BY_ID, DAILY, DAILY_POOL, ENDLESS,
+  MODIFIERS,
 } from './config.js';
+import { createRng, hashString } from './utils.js';
 import { EV, emit } from './events.js';
-import { state } from './state.js';
+import { state, todayKey } from './state.js';
 
 const P = () => state.profile;
 
@@ -275,41 +279,117 @@ export function equip(side, id) {
 }
 
 /* --------------------------------------------------------------------------
- * 3. OYUN SONU
+ * 3. MEYDAN OKUMALAR — Sonsuz Gece, Günün Sınavı, Sınavlar (1.5.0)
+ *  Hepsi bir bölüm kazanılınca açılır; kayıtları records.endless / daily /
+ *  challenges (state.js). Günün Sınavı tarih + kazanılan bölümlerden
+ *  türetilir: aynı gün aynı oyuncuya hep aynı sınav çıkar (ağ yok).
+ * ------------------------------------------------------------------------ */
+/** Kazanılmış bölümler (çarşı sırasıyla). */
+export const wonChapters = () => MAPS.filter((m) => chapterWon(m.id));
+
+/** Meydan Okumalar açık mı (en az bir bölüm kazanıldı)? */
+export const modesUnlocked = () => wonChapters().length > 0;
+
+/** Sonsuz Gece bu bölümde açık mı? */
+export const endlessUnlocked = (mapId) => chapterWon(mapId);
+
+/** Sonsuz Gece rekoru (bölüm, zorluk). */
+export const endlessBest = (mapId, diff) => state.records.endless[mapId]?.[diff] ?? 0;
+
+export const challengeUnlocked = (id) => !!CHALLENGE_BY_ID[id] && chapterWon(CHALLENGE_BY_ID[id].map);
+export const challengeDone = (id) => state.records.challenges.includes(id);
+export const challengesDone = () => CHALLENGES.filter((c) => challengeDone(c.id)).length;
+
+/**
+ * Bir günün sınavı: { date, mapId, difficulty, mods, done, reward } ya da null
+ * (henüz bölüm kazanılmadı). Bölüm kazanılanlardan, kurallar DAILY_POOL'dan seçilir.
+ */
+export function dailyChallenge(date = todayKey()) {
+  const won = wonChapters();
+  if (!won.length) return null;
+  const r = createRng(hashString(`soulgate:${date}`)); // aynı gün → aynı seçim
+  const map = r.pick(won);
+  // kurallar: toplam ağırlık DAILY.maxWeight'i geçmesin (iki ağır kural bir arada çıkmaz)
+  let pool = [...DAILY_POOL];
+  const mods = [];
+  let weight = 0;
+  while (mods.length < DAILY.mods && pool.length) {
+    const id = pool.splice(r.int(0, pool.length - 1), 1)[0];
+    mods.push(id);
+    weight += MODIFIERS[id].weight;
+    pool = pool.filter((m) => weight + MODIFIERS[m].weight <= DAILY.maxWeight);
+  }
+  return {
+    date,
+    mapId: map.id,
+    difficulty: DAILY.difficulty,
+    mods,
+    done: state.records.daily.last === date,
+    reward: Math.round(DAILY.bonus * map.reward),
+  };
+}
+
+/** Günün sınavı serisi şu an sürüyor mu (dün ya da bugün kazanıldıysa)? Kırıldıysa 0 gösterilir. */
+export function dailyStreak(date = todayKey()) {
+  const d = state.records.daily;
+  if (!d.last) return 0;
+  const t = (k) => Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10));
+  const gap = Math.round((t(date) - t(d.last)) / 86400000);
+  return gap <= 1 ? d.streak : 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. OYUN SONU
  * ------------------------------------------------------------------------ */
 /**
  * Altın ödülünün dökümü.
  * @param {boolean} victory
- * @param {{wave:number, bossKills:number, difficulty:string, mapId:string}} stats
- *  mult: zorluk × bölüm çarpanı (arayüz ikisini ayrı da gösterir)
+ * @param {{wave:number, bossKills:number, difficulty:string, mapId:string,
+ *          mode?:string, carry?:{waves,bosses}, challenge?:string}} stats
+ * @param {{dailyFirst?:boolean, challengeFirst?:boolean}} [res] recordRunResult sonucu
+ *  mult: zorluk × bölüm çarpanı (arayüz ikisini ayrı da gösterir).
+ *  Sonsuz Gece: 30'dan sonraki dalgalar perWave × ENDLESS.rewardMult; zafer payı yok.
+ *  Zaferden sonra sürdürülen oyunda zaferde ödenen kısım (carry) yeniden ödenmez.
+ *  bonus: Günün Sınavı / Sınav ilk zafer ödülü (çarpansız, toplamın üstüne).
  */
-export function runReward(victory, stats) {
+export function runReward(victory, stats, res = {}) {
   const R = META.reward;
   const diff = DIFFICULTIES[stats.difficulty] ?? DIFFICULTIES[DEFAULT_DIFFICULTY];
   const chapter = MAP_BY_ID[stats.mapId] ?? MAPS[0];
-  const waves = victory ? WAVE_COUNT : Math.max(0, (stats.wave ?? 0) - 1); // yenilgide son dalga temizlenmedi
-  const bosses = stats.bossKills ?? 0;
+  const mode = stats.mode ?? 'campaign';
+  const carry = stats.carry ?? null;
+  const cleared = victory ? WAVE_COUNT : Math.max(0, (stats.wave ?? 0) - 1); // yenilgide son dalga temizlenmedi
+  const from = carry ? carry.waves : 0;
+  const plain = Math.max(0, Math.min(cleared, WAVE_COUNT) - from);
+  const extra = Math.max(0, cleared - Math.max(WAVE_COUNT, from));
+  const waves = plain + extra;
+  const bosses = Math.max(0, (stats.bossKills ?? 0) - (carry ? carry.bosses : 0));
+  let bonus = 0;
+  if (res.dailyFirst) bonus = Math.round(DAILY.bonus * chapter.reward);
+  else if (res.challengeFirst && CHALLENGE_BY_ID[stats.challenge]) bonus = CHALLENGE_BY_ID[stats.challenge].reward;
   const parts = {
-    waves: waves * R.perWave,
+    waves: plain * R.perWave + Math.round(extra * R.perWave * ENDLESS.rewardMult),
     bosses: bosses * R.perBoss,
-    victory: victory ? R.victory : 0,
+    victory: victory && mode !== 'endless' ? R.victory : 0,
+    bonus,
   };
   const raw = parts.waves + parts.bosses + parts.victory;
   const mult = diff.reward * chapter.reward;
-  const total = Math.max(R.minimum, Math.round(raw * mult));
-  return { waves, bosses, parts, mult, diffMult: diff.reward, chapterMult: chapter.reward, total };
+  const total = Math.max(R.minimum, Math.round(raw * mult)) + bonus;
+  return { waves, bosses, parts, mult, diffMult: diff.reward, chapterMult: chapter.reward, total, mode };
 }
 
 /**
- * Biten oyunu profile işler: altını ekler, yenilgide kaleyi yıkar.
+ * Biten oyunu profile işler: altını ekler, bölüm oyununda yenilgide kaleyi
+ * yıkar (Meydan Okumalarda kale yıkılmaz).
  * @returns {object} runReward sonucu
  */
-export function settleRun(victory, stats) {
-  const reward = runReward(victory, stats);
+export function settleRun(victory, stats, res = {}) {
+  const reward = runReward(victory, stats, res);
   const p = P();
   p.gold += reward.total;
   p.earned += reward.total;
-  if (!victory) p.ruined = true;
+  if (!victory && (stats.mode ?? 'campaign') === 'campaign') p.ruined = true;
   emit(EV.PROFILE);
   return reward;
 }

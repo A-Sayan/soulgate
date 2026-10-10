@@ -458,6 +458,12 @@ const META = {
   rebirth: { throttle: 2, voices: 1, wet: 0.55, gain: 1, pri: true },
   stomp: { throttle: 1, voices: 1, wet: 0.35, gain: 1, pri: true },
   voidburst: { throttle: 1, voices: 1, wet: 0.45, gain: 1, pri: true },
+  roar: { throttle: 1, voices: 1, wet: 0.4, gain: 1.1, pri: true },
+  ev_warn: { throttle: 1, voices: 1, wet: 0.55, gain: 1.2, pri: true },
+  ev_rise: { throttle: 0.8, voices: 1, wet: 0.35, gain: 1.2, pri: true },
+  ev_gas: { throttle: 0.8, voices: 1, wet: 0.3, gain: 1.2, pri: true },
+  ev_rift: { throttle: 0.8, voices: 1, wet: 0.5, gain: 1.1, pri: true },
+  rift_hit: { throttle: 0.12, voices: 2, wet: 0.3, gain: 1.3 },
   skill_thunder: { throttle: 0.5, voices: 1, wet: 0.45, gain: 1, pri: true },
   thunder_hit: { throttle: 0.05, voices: 3, wet: 0.2, gain: 1.2 },
   skill_timestop: { throttle: 0.5, voices: 1, wet: 0.6, gain: 1.2, pri: true },
@@ -714,6 +720,51 @@ const SFX = {
     burst(v, { t, attack: 0.3, dur: 0.6, peak: 0.12, type: 'bandpass', f0: 300, f1: 2400, q: 3 });
     tone(v, { type: 'sawtooth', f0: 46, t, attack: 0.2, dur: 1, peak: 0.04 });
     return 1.4;
+  },
+  /** Öfkeli patronun kükremesi: pes, hırıltılı, titreyen bir boğaz sesi. */
+  roar(v, t) {
+    burst(v, { t, attack: 0.08, dur: 0.9, peak: 0.24, type: 'bandpass', f0: 260, f1: 140, q: 1.6 });
+    tone(v, { type: 'sawtooth', f0: 92, f1: 58, t, attack: 0.06, dur: 0.95, peak: 0.07 });
+    tone(v, { type: 'sawtooth', f0: 97, f1: 61, t, attack: 0.06, dur: 0.9, peak: 0.05 }); // akortsuz: hırıltı
+    tone(v, { f0: 55, f1: 32, t, dur: 0.8, peak: 0.35 });
+    return 1.1;
+  },
+
+  /* — Harita olayları — */
+  /** Uyarı: alçak, yükselen bir uğultu ve iki kısa çan vuruşu (bir şey geliyor). */
+  ev_warn(v, t) {
+    burst(v, { t, attack: 0.5, dur: 0.6, peak: 0.08, type: 'bandpass', f0: 180, f1: 520, q: 2.5 });
+    bell(v, { f: 207.65, t: t + 0.1, peak: 0.05, decay: 1.2 });
+    bell(v, { f: 196, t: t + 0.42, peak: 0.04, decay: 1.4 });
+    return 1.8;
+  },
+  /** Mezardan kalkan ölüler: toprak gürlemesi ve kemik takırtısı. */
+  ev_rise(v, t) {
+    tone(v, { f0: 70, f1: 40, t, attack: 0.05, dur: 0.7, peak: 0.4 });
+    burst(v, { t, dur: 0.5, peak: 0.18, type: 'lowpass', f0: 700, f1: 120, q: 0.8 });
+    for (let i = 0; i < 6; i++) {
+      burst(v, { t: t + 0.12 + i * 0.05 + rng.range(0, 0.02), dur: 0.025, peak: 0.08, type: 'highpass', f0: vary(2400, 0.3), q: 2 });
+    }
+    return 0.9;
+  },
+  /** Gaz kabarcığı patlar: tok "plop" ve uzun tıslama. */
+  ev_gas(v, t) {
+    tone(v, { f0: 160, f1: 60, t, dur: 0.25, peak: 0.3 });
+    burst(v, { t: t + 0.04, attack: 0.1, dur: 1.4, peak: 0.12, type: 'highpass', f0: 1800, q: 0.5 });
+    for (let i = 0; i < 4; i++) tone(v, { f0: vary(320, 0.3), f1: 520, t: t + 0.2 + i * 0.13, dur: 0.06, peak: 0.04 });
+    return 1.6;
+  },
+  /** Boşluk yarığı açılır: içe çeken bir vınlama. */
+  ev_rift(v, t) {
+    tone(v, { f0: 1400, f1: 120, t, attack: 0.3, dur: 0.9, peak: 0.05 });
+    burst(v, { t, attack: 0.4, dur: 0.8, peak: 0.12, type: 'bandpass', f0: 2400, f1: 300, q: 3 });
+    tone(v, { f0: 52, t: t + 0.2, attack: 0.2, dur: 1.2, peak: 0.3 });
+    return 1.5;
+  },
+  rift_hit(v, t) {
+    tone(v, { f0: 300, f1: 1600, t, attack: 0.01, dur: 0.12, peak: 0.05 });
+    burst(v, { t, attack: 0.08, dur: 0.06, peak: 0.06, type: 'bandpass', f0: 800, f1: 2600, q: 2 });
+    return 0.2;
   },
 
   /* — Vuruş ve ölüm — */
@@ -1455,6 +1506,20 @@ function subscribe() {
   on(EV.HEAL, (healer) => play('heal', { x: healer.x }));
   on(EV.STATUS, (en, kind) => {
     if (kind === 'freeze' || kind === 'stun' || kind === 'evade' || kind === 'execute' || kind === 'enrage') play(kind, { x: en.x });
+  });
+
+  on(EV.MAP_EVENT, (id, phase, x, y, value) => {
+    if (phase === 'warn') play('ev_warn', { x });
+    else if (phase === 'hit') play('rift_hit', { x });
+    else if (phase !== 'act') return;
+    else if (id === 'lava') play('explosion', { x, radius: value, kind: 'hellmaw' });
+    else if (id === 'blizzard') play('blizzard');
+    else play(`ev_${id}`, { x });
+  });
+  on(EV.RUN_CONTINUE, () => {
+    field.inGame = true;
+    resetField();
+    refreshMood();
   });
 
   on(EV.BOSS_SPAWN, () => play('boss_spawn'));
